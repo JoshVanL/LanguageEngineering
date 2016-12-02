@@ -1,0 +1,4 @@
+megaparsec -any
+regex-compat -any
+random -any
+parsec -any
