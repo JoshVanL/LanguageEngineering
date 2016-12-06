@@ -206,7 +206,7 @@ translated into a corresponding datatype and parser.
 
 > exprOp :: Parser ExprOp
 > exprOp = (:+:) <$ tok "+" <*> term
->      <|> (:-:) <$ tok "|" <*> term
+>      <|> (:-:) <$ tok "-" <*> term
 
     term : fact (('*'|'/') fact)*
 
