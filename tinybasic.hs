@@ -56,7 +56,7 @@ expr = Expr <$> ((POS <$ tok "+") <|> (NEG <$ tok "-") <|> pure POS)
 
 exprs :: Parser Exprs
 exprs = (:+:) <$ tok "+" <*> term
-     <|> (:-:) <$ tok "|" <*> term
+     <|> (:-:) <$ tok "-" <*> term
 
 term :: Parser Term
 term = Term <$> fact <*> many terms
@@ -93,7 +93,7 @@ parseFile filePath = do
   file <- readFile filePath
   putStrLn $ case parse prog filePath file of
     Left err   -> parseErrorPretty err
-    Right prog -> pretty prog
+    Right prog -> show prog
 
 cr :: Parser [Char]
 cr = many (oneOf "\r\n")
