@@ -1,180 +1,68 @@
-{-# LANGUAGE StandaloneDeriving #-}
-module TinyBasic where
-import Text.Megaparsec
-import Text.Megaparsec.String
-import Data.List (intercalate)
+import Data.Char
+import Control.Applicative
 
-data Prog  =  Prog [Line]
-data Line  =  Cmnd Cmnd | Line Int Stmt
-data Cmnd  =  CLEAR | LIST | RUN
-data Stmt  =  PRINT Args
-           |  IF Expr Rel Expr Stmt
-           |  GOTO Expr
-           |  INPUT [Ident]
-           |  LET Ident Expr
-           |  GOSUB Expr
-           |  RETURN
-           |  END
-type Args    =  [Either String Expr]
-data Parity  =  POS | NEG
-data Expr    =  Expr Parity Term [Exprs]
-data Exprs   =  (:+:) Term | (:-:) Term
-data Term    =  Term Fact [Terms]
-data Terms   =  (:*:) Fact | (:/:) Fact
-data Fact    =  Var Ident | Number Int | Parens Expr
-data Rel     =  (:<:) | (:<=:) | (:<>:) | (:=:) | (:>:) | (:>=:)
-type Ident   =  Char
 
-prog :: Parser Prog
-prog = Prog <$> many line
+data Parser a = Parser (String -> Maybe [(a, String)])
 
-line :: Parser Line
-line = Cmnd  <$> cmnd <* cr <|> Line  <$> number <*> stmt <* cr
+parse :: Parser a -> (String -> Maybe [(a, String)])
+parse (Parser p) = p
 
-cmnd :: Parser Cmnd
-cmnd = CLEAR  <$ tok "CLEAR" <|> LIST   <$ tok "LIST" <|> RUN    <$ tok "RUN"
 
-stmt :: Parser Stmt
-stmt = PRINT   <$ tok "PRINT" <*> args
-   <|> IF      <$ tok "IF" <*> expr <*> rel <*> expr <* tok "THEN" <*> stmt
-   <|> GOTO    <$ tok "GOTO" <*> expr
-   <|> INPUT   <$ tok "INPUT" <*> vars
-   <|> LET     <$ tok "LET" <*> var <* tok "=" <*> expr
-   <|> GOSUB   <$ tok "GOSUB" <*> expr
-   <|> RETURN  <$ tok "RETURN"
-   <|> END     <$ tok "END"
+instance Functor Parser where
+    fmap f p = Parser (\ts -> case parse p ts of
+        Nothing -> Nothing
+        Just [(x, ts')] -> Just [((f x), ts')])
 
-args :: Parser Args
-args = sepBy1 ((Left <$> str) <|> (Right <$> expr)) (tok ",")
 
-str :: Parser String
-str = tok "\"" *> some (noneOf ("\n\r\"")) <* tok "\""
+instance Applicative Parser where
+  pure a = Parser (\ts -> Just [(a, ts)])
+  p <*> q = Parser (\ts -> do
+          [(f,ts')] <- parse p ts
+          [(x,ts'')] <- parse q ts'
+          Just [(f x, ts'')])
 
-expr :: Parser Expr
-expr = Expr <$> ((POS <$ tok "+") <|> (NEG <$ tok "-") <|> pure POS)
-   <*> term <*> many exprs
 
-exprs :: Parser Exprs
-exprs = (:+:) <$ tok "+" <*> term
-     <|> (:-:) <$ tok "-" <*> term
+instance Monad Parser where
+  p >>= f = Parser (\ts -> case parse p ts of
+        Nothing -> Nothing
+        Just [(x,ts')] -> parse (f x) ts')
 
-term :: Parser Term
-term = Term <$> fact <*> many terms
+instance Alternative Parser where
+  empty = failure
+  (<|>) = option
 
-terms :: Parser Terms
-terms = (:*:) <$ tok "*" <*> fact
-     <|> (:/:) <$ tok "/" <*> fact
+option :: Parser a -> Parser a -> Parser a
+option (Parser px) (Parser py) = Parser (\ts ->
+              case px ts of
+              Nothing -> py ts
+              xs -> xs)
 
-fact :: Parser Fact
-fact = Var <$> var
-     <|> Number <$> number
-     <|> Parens <$ tok "(" <*> expr <* tok ")"
 
-var :: Parser Char
-var = oneOf ['A' .. 'Z'] <* whitespace
+produce :: a -> Parser a
+produce x = Parser (\ts -> Just [(x, ts)])
 
-vars :: Parser [Ident]
-vars = sepBy1 var (tok ",")
+failure :: Parser a
+failure = Parser (\ts -> Nothing)
 
-number :: Parser Int
-number = (some (oneOf ['0' .. '9']) >>= return . read) <* whitespace
+item :: Parser Char
+item = Parser (\ts -> case ts of
+      [] -> Nothing
+      (x:xs) -> Just [(x,xs)])
 
-rel :: Parser Rel
-rel = (:<>:)  <$ tok "<>"
-  <|> (:<>:)  <$ tok "><"
-  <|> (:=:)   <$ tok "="
-  <|> (:<=:)  <$ tok "<="
-  <|> (:<:)   <$ tok "<"
-  <|> (:>=:)  <$ tok ">="
-  <|> (:>:)   <$ tok ">"
+satisfy :: (Char -> Bool) -> Parser Char
+satisfy p = item >>= \x ->
+            if p x then produce x else failure
 
-parseFile :: FilePath -> IO ()
-parseFile filePath = do
-  file <- readFile filePath
-  putStrLn $ case parse prog filePath file of
-    Left err   -> parseErrorPretty err
-    Right prog -> show prog
+char :: Char -> Parser Char
+char x = satisfy (x ==)
 
-parsePretty :: FilePath -> IO ()
-parsePretty filePath = do
-  file <- readFile filePath
-  putStrLn $ case parse prog filePath file of
-    Left err   -> parseErrorPretty err
-    Right prog -> pretty prog
+string :: String -> Parser String
+string cs = foldr (\x pxs ->
+                  (:) <$> char x <*> pxs)
+                  (produce []) cs
 
-cr :: Parser [Char]
-cr = many (oneOf "\r\n")
+oneOf :: [Char] -> Parser Char
+oneOf x = satisfy (flip elem x)
 
-tok :: String -> Parser String
-tok t = string t <* whitespace
-
-whitespace :: Parser ()
-whitespace = many (oneOf " \t") *> pure ()
-
-deriving instance Show Prog
-deriving instance Show Line
-deriving instance Show Cmnd
-deriving instance Show Stmt
-deriving instance Show Expr
-deriving instance Show Term
-deriving instance Show Terms
-deriving instance Show Fact
-deriving instance Show Parity
-deriving instance Show Exprs
-deriving instance Show Rel
-
-class Pretty a where
-  pretty :: a -> String
-
-instance Pretty Prog where
-  pretty (Prog ls) = (unlines . map pretty) ls
-
-instance Pretty Line where
-  pretty (Line n stmt) = show n ++ " " ++ pretty stmt
-  pretty (Cmnd cmnd) = pretty cmnd
-
-instance Pretty Stmt where
-  pretty (PRINT es)                = "PRINT " ++ (intercalate ", " . map (either show pretty)) es
-  pretty (IF expr1 rel expr2 stmt) = "IF " ++ pretty expr1 ++ " " ++ pretty rel ++ " " ++ pretty expr2 ++ " " ++ pretty stmt
-  pretty (GOTO expr)               = "GOTO " ++ pretty expr
-  pretty (INPUT idents )           = "INPUT " ++ (intercalate ", " (map wrap idents))
-  pretty (LET ident expr)          = "LET " ++ wrap ident ++ " = " ++ pretty expr
-  pretty (GOSUB expr)              = "GOSUB " ++ show expr
-  pretty (RETURN)                  = "RETURN"
-  pretty (END)                     = "END"
-
-instance Pretty Cmnd where
-  pretty (CLEAR) = "CLEAR"
-  pretty (LIST)  = "LIST"
-  pretty (RUN)   = "RUN"
-
-instance Pretty Expr where
-  pretty (Expr NEG term exprs) = "-" ++ pretty term ++ (concat . map pretty) exprs
-  pretty (Expr POS term exprs) = pretty term ++ (concat . map pretty) exprs
-
-instance Pretty Exprs where
-  pretty ((:+:) term) = " + " ++ pretty term
-  pretty ((:-:) term) = " - " ++ pretty term
-
-instance Pretty Rel where
-  pretty (:<>:) = "<>"
-  pretty (:=:)  = "="
-  pretty (:<=:) = "<="
-  pretty (:<:)  = "<"
-  pretty (:>=:) = ">="
-  pretty (:>:)  = ">"
-
-instance Pretty Term where
-  pretty (Term fact terms) = pretty fact ++ (concat . map pretty) terms
-
-instance Pretty Terms where
-  pretty ((:*:) fact) = " * " ++ pretty fact
-  pretty ((:/:) fact) = " / " ++ pretty fact
-
-instance Pretty Fact where
-  pretty (Var ident)   = wrap ident
-  pretty (Number n)    = show n
-  pretty (Parens expr) = "(" ++ pretty expr ++ ")"
-
-wrap :: Char -> String
-wrap c = [c]
+natural :: Parser Integer
+natural = read <$> some (satisfy isDigit)
