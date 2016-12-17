@@ -1,7 +1,6 @@
 import Data.Char
 import Control.Applicative
 
-
 data Parser a = Parser (String -> Maybe [(a, String)])
 
 parse :: Parser a -> (String -> Maybe [(a, String)])
