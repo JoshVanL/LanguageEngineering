@@ -96,7 +96,7 @@ parseFile filePath = do
     Right prog -> show prog
 
 cr :: Parser [Char]
-cr = many (oneOf "\r\n")
+cr = some (oneOf "\r\n")
 
 tok :: String -> Parser String
 tok t = string t <* whitespace
