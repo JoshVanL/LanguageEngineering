@@ -1,4 +1,4 @@
-data Parser a = Parser (String -> Maybe [(a, String)])
+newtype Parser a = Parser (String -> Maybe [(a, String)])
 
 produce :: a -> Parser a
 produce x = Parser (\ts -> Just [(x, ts)])
@@ -18,3 +18,10 @@ instance Functor Parser where
   fmap f p = Parser (\ts -> case parse p ts of
     Nothing -> Nothing
     Just [(x, ts')] -> Just [((f x), ts')])
+
+instance Applicative Parser where
+  pure a = Parser (\ts -> Just [(a, ts)])
+  p <*> q = Parser (\ts -> do
+          [(f,ts')] <- parse p ts
+          [(x,ts'')] <- parse q ts'
+          Just [(f x, ts'')])
