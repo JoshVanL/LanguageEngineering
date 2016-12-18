@@ -37,6 +37,65 @@ class Applicative f => Choice f where
 
 instance Choice Parser where
   empty = failure
-  px <|> py = Parser (\ts -> case parse px ts of
+  (<|>) _ py = parse py
+  (<|>) px py = Parser (\ts -> case parse px ts of
           Nothing -> parse py ts
           xs -> xs)
+
+many :: Parser a -> Parser [a]
+many x = some x <|> produce []
+
+some :: Parser a -> Parser [a]
+some x = (:) <$> x <*> many x
+
+satisfy :: (Char -> Bool) -> Parser Char
+satisfy p = item >>= \x ->
+        if p x then produce x else failure
+
+oneOf :: [Char] -> Parser Char
+oneOf cs = satisfy (\c -> elem c cs)
+
+noneOf :: [Char] -> Parser Char
+noneOf cs = satisfy (\c -> not(elem c cs))
+
+char :: Char -> Parser Char
+char x = satisfy (x ==)
+
+string :: String -> Parser String
+string "" = produce ""
+string(x:xs) = char x >>= \x' ->
+               string xs >>= \xs' ->
+               produce (x:xs)
+
+whitespace :: Parser ()
+whitespace = many (oneOf " \t") *> produce ()
+
+tok :: String -> Parser String
+tok t = string t <* whitespace
+
+achar :: Parser Char
+achar = noneOf("\"\n\r")
+
+str :: Parser String
+str = tok "\"" *> many achar <* tok "\""
+
+data Rel = (:<:) | (:<=:) | (:<>:) | (:=:) | (:>:) | (:>=:)
+
+rel :: Parser Rel
+rel = (:<>:)  <$ tok "<>"
+  <|> (:<>:)  <$ tok "><"
+  <|> (:=:)   <$ tok "="
+  <|> (:<=:)  <$ tok "<="
+  <|> (:<:)   <$ tok "<"
+  <|> (:>=:)  <$ tok ">="
+  <|> (:>:)   <$ tok ">"
+
+
+digit :: Parser Char
+digit = oneOf ['0' .. '9']
+
+number :: Parser Int
+number = (some digit) >>= return . read
+
+var :: Parser Char
+var = oneOf ['A' .. 'Z']
