@@ -25,3 +25,18 @@ instance Applicative Parser where
           [(f,ts')] <- parse p ts
           [(x,ts'')] <- parse q ts'
           Just [(f x, ts'')])
+
+instance Monad Parser where
+  p >>= f = Parser (\ts -> case parse p ts of
+        Nothing -> Nothing
+        Just [(x,ts')] -> parse (f x) ts')
+
+class Applicative f => Choice f where
+  empty :: f a
+  (<|>) :: f a -> f a -> f a
+
+instance Choice Parser where
+  empty = failure
+  px <|> py = Parser (\ts -> case parse px ts of
+          Nothing -> parse py ts
+          xs -> xs)
