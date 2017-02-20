@@ -13,7 +13,7 @@ data Aexp = N Num | V Var | Mult Aexp Aexp |
               deriving (Show, Eq, Read)
 
 data Bexp = TRUE | FALSE | Neg Bexp | And Bexp Bexp |
-             Eq Aexp Aexp | Le Aexp Aexp
+            Eq Aexp Aexp | Le Aexp Aexp | Imp Bexp Bexp
               deriving (Show, Eq, Read)
 
 n_val :: Num -> Z
@@ -26,7 +26,7 @@ s "z" = n_val 3
 s var = n_val 0
 
 a :: Aexp
-a = Mult (Add (V "x") (V "v")) (Sub (V "z") (N 1))
+a = Mult (Add (V "x") (V "y")) (Sub (V "z") (N 1))
 
 a_val :: Aexp -> State -> Z
 a_val (N n) s = n_val n
@@ -44,12 +44,33 @@ b_val FALSE s = False
 b_val (Neg b) s = case b_val b s of 
                     True -> False
                     False -> True
-b_val (And b1 b2) s = case (b1, b2) of
-                        (TRUE, TRUE) -> True
+b_val (And b1 b2) s = case ((b_val b1 s), (b_val b2 s)) of 
+                        (True, True) -> True
                         otherwise -> False
 b_val (Eq a1 a2) s = if (a_val a1 s) == (a_val a2 s)
                         then True
                         else False
 b_val (Le a1 a2) s = if (a_val a1 s) <= (a_val a2 s)
-                            then True
-                            else False 
+                        then True
+                        else False 
+b_val (Imp b1 b2) s = case b_val b1 s of
+                        True -> case b_val b2 s of
+                                  True -> True
+                                  False -> False 
+                        False -> True
+
+fv_aexp :: Aexp -> [Var]
+fv_aexp (V v) = [v]
+fv_aexp (N n) = []
+fv_aexp (Mult a1 a2) = (++) (fv_aexp a1) (fv_aexp a2)
+fv_aexp (Add a1 a2) = (++) (fv_aexp a1) (fv_aexp a2)
+fv_aexp (Sub a1 a2) = (++) (fv_aexp a1) (fv_aexp a2)
+
+subst_aexp :: Aexp -> Var -> Aexp -> Aexp
+subst_aexp (V var) v a2 = if (var == v)
+                             then a2
+                             else V var
+subst_aexp (N n) v a2 = N n
+subst_aexp (Mult a11 a12) v a2 = Mult (subst_aexp a11 v a2) (subst_aexp a12 v a2)
+subst_aexp (Add a11 a12) v a2 = Add (subst_aexp a11 v a2) (subst_aexp a12 v a2)
+subst_aexp (Sub a11 a12) v a2 = Sub (subst_aexp a11 v a2) (subst_aexp a12 v a2) 
