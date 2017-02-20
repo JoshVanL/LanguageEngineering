@@ -6,14 +6,15 @@ parseFile filePath = do
   putStrLn (show(runParser prog file))
 
 
-newtype Parser a = Parser (String -> Maybe [(a, String)])
-
 runParser :: Parser a -> String -> a
 runParser m s =
   case parse m s of
     Just [(res, [])] -> res
     Just [(_, rs)]   -> error rs
     _           -> error "Parser error."
+
+
+newtype Parser a = Parser (String -> Maybe [(a, String)])
 
 produce :: a -> Parser a
 produce x = Parser (\ts -> Just [(x, ts)])
@@ -40,14 +41,6 @@ instance Applicative Parser where
           [(f,ts')] <- parse p ts
           [(x,ts'')] <- parse q ts'
           Just [(f x, ts'')])
-  p *> q = Parser (\ts -> do
-          [(f,ts')] <- parse p ts
-          [(x,ts'')] <- parse q ts'
-          Just [(x, ts'')])
-  p <* q = Parser (\ts -> do
-          [(f,ts')] <- parse p ts
-          [(x,ts'')] <- parse q ts'
-          Just [(f, ts'')])
 
 instance Monad Parser where
   p >>= f = Parser (\ts -> case parse p ts of
@@ -126,6 +119,13 @@ achar = noneOf("\"\n\r.")
 str :: Parser String
 str = tok "\"" *> many achar <* tok "\""
 
+
+digit :: Parser Char
+digit = oneOf ['0' .. '9'] <* whitespace
+
+number :: Parser Int
+number = ((some digit) >>= return . read) <* whitespace
+
 rel :: Parser Rel
 rel = ((:<>:)  <$ tok "<>")
   <|> ((:<>:)  <$ tok "><")
@@ -134,13 +134,6 @@ rel = ((:<>:)  <$ tok "<>")
   <|> ((:<:)   <$ tok "<")
   <|> ((:>=:)  <$ tok ">=")
   <|> ((:>:)   <$ tok ">")
-
-
-digit :: Parser Char
-digit = oneOf ['0' .. '9'] <* whitespace
-
-number :: Parser Int
-number = ((some digit) >>= return . read) <* whitespace
 
 var :: Parser Ident
 var = oneOf ['A' .. 'Z'] <* whitespace
