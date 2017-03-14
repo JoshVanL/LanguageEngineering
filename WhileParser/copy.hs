@@ -16,13 +16,19 @@ data Stm = Seq [Stm]
          | While Bexp Stm
         deriving (Show)
 
-data Bexp = TRUE
-          | FALSE
+data Bexp = Bool T
           | Neg Bexp
-          | Eq Aexp Aexp
-          | And Bexp Bexp
-          | Le Aexp Aexp
-          | Imp Bexp Bexp
+          | BBinary BBinOp Bexp Bexp
+          | RBinary RBinOp Aexp Aexp
+        deriving (Show)
+
+data BBinOp = And
+            | Or
+        deriving(Show)
+
+data RBinOp = Eq
+            | Le
+            | Imp
         deriving (Show)
 
 data Aexp = N Num 
@@ -43,41 +49,25 @@ type Z = Integer
 type T = Bool
 
 stm :: Parser Stm
-stm  = ifStm
-    <|> whileStm
-    <|> skipStm
-    <|> assStm
-
-ifStm :: Parser Stm
-ifStm = If <$ tok "if" <*> bexp <* tok "then" <*> stm <* tok "else" <*> stm
-
-whileStm :: Parser Stm
-whileStm = While <$ tok "while" <*> bexp <* tok "do" <*> stm
-
-skipStm :: Parser Stm
-skipStm = Skip <$ tok "skip"
-
-assStm :: Parser Stm
-assStm = Ass <$> var <* tok ":=" <*> aexp
+stm =  Ass   <$> var <* tok ":=" <*> aexp
+   <|> Skip  <$  tok "Skip"
+   <|> Comp  <$> stm <* tok ";" <*> stm
+   <|> If    <$  tok "if" <*> bexp <* tok "then" <*> stm <* tok "else" <*> stm
+   <|> While <$  tok "while" <*> bexp <* tok "do" <*> stm
 
 aexp :: Parser Aexp
-aexp =  ABinary <$> aBinOp
-    <|> N       <$> number
-    <|> V       <$> var
+aexp =  Mult <$> aexp <* tok "*" <*> aexp
+    <|> Add  <$> aexp <* tok "+" <*> aexp
+    <|> Sub  <$> aexp <* tok "-" <*> aexp
+    <|> N    <$> number
+    <|> V    <$> var
 
-aBinOp :: Parser Aexp
-aBinOp =  Mult <$> aTerm <* tok "*" <*> aexp
-      <|> Add  <$> aTerm <* tok "+" <*> aexp
-      <|> Sub  <$> aTerm <* tok "-" <*> aexp
-
-aTerm :: Parser Aexp
-aTerm =  N       <$> number
-     <|> V       <$> var
 
 bexp :: Parser Bexp
 bexp =  Neg   <$  tok "!" <*> bexp
-    <|> TRUE  <$  tok "true" <* whitespace
-    <|> FALSE  <$  tok "false" <* whitespace
+    <|> Bool  <$  tok "true" <* whitespace
+    <|> Bool  <$  tok "false" <* whitespace
+    <|> And   <$> bexp <* tok "&&" <*> bexp
     <|> Eq    <$> aexp <* tok "==" <*> aexp
     <|> Le    <$> aexp <* tok "<=" <*> aexp
     <|> Imp   <$> bexp <* tok "->" <*> bexp

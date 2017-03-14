@@ -1,90 +1,114 @@
+{-# OPTIONS_GHC -fno-warn-unused-do-bind #-}
+
 module Par_lib where
-import Data.Char
+import Prelude hiding (Num)
+import qualified Prelude (Num)
+import Data.Char 
+import Control.Monad
 import Control.Applicative
 
-newtype Parser a = Parser (String -> Maybe [(a, String)])
 
-parse :: Parser a -> (String -> Maybe [(a, String)])
-parse (Parser p) = p
+newtype Parser a = Parser { parse :: String -> [(a,String)] }
+
 
 runParser :: Parser a -> String -> a
 runParser m s =
-    case parse m s of
-        Just [(res, [])] -> res
-        Just [(_, rs)]   -> error rs
-        _                -> error "Parser error."
+  case parse m s of
+    [(res, [])] -> res
+    [(_, rs)]   -> error "Parser did not consume entire stream."
+    _           -> error "Parser error."
 
-produce :: a -> Parser a
-produce x = Parser (\ts -> Just [(x, ts)])
-
-failure :: Parser a
-failure = Parser (\ts -> Nothing)
 
 item :: Parser Char
-item = Parser (\ts -> case ts of
-      [] -> Nothing
-      (x:xs) -> Just [(x,xs)])
+item = Parser $ \s ->
+  case s of
+   []     -> []
+   (c:cs) -> [(c,cs)]
+
+
+bind :: Parser a -> (a -> Parser b) -> Parser b
+(bind) p f = Parser $ \s -> concatMap (\(a, s') -> parse (f a) s') $ parse p s
+
+unit :: a -> Parser a
+unit a = Parser (\s -> [(a,s)])
 
 instance Functor Parser where
-    fmap f p = Parser (\ts -> case parse p ts of
-        Nothing -> Nothing
-        Just [(x, ts')] -> Just [((f x), ts')])
-
+  fmap f (Parser cs) = Parser (\s -> [(f a, b) | (a, b) <- cs s])
 
 instance Applicative Parser where
-  pure a = Parser (\ts -> Just [(a, ts)])
-  p <*> q = Parser (\ts -> do
-          [(f,ts')] <- parse p ts
-          [(x,ts'')] <- parse q ts'
-          Just [(f x, ts'')])
-
+  pure = return
+  (Parser cs1) <*> (Parser cs2) = Parser (\s -> [(f a, s2) | (f, s1) <- cs1 s, (a, s2) <- cs2 s1])
 
 instance Monad Parser where
-  p >>= f = Parser (\ts -> case parse p ts of
-        Nothing -> Nothing
-        Just [(x,ts')] -> parse (f x) ts')
+  return = unit
+  (>>=) = bind
+
+
+instance MonadPlus Parser where
+  mzero = failure
+  mplus = combine
 
 instance Alternative Parser where
-  empty = failure
+  empty = mzero
   (<|>) = option
 
+combine :: Parser a -> Parser a -> Parser a
+combine p q = Parser (\s -> parse p s ++ parse q s)
+
+failure :: Parser a
+failure = Parser (\cs -> [])
+
 option :: Parser a -> Parser a -> Parser a
-option (Parser px) (Parser py) = Parser (\ts ->
-              case px ts of
-              Nothing -> py ts
-              xs -> xs)
+option  p q = Parser $ \s ->
+  case parse p s of
+    []     -> parse q s
+    res    -> res
 
 satisfy :: (Char -> Bool) -> Parser Char
-satisfy p = item >>= \x ->
-            if p x then produce x else failure
-
-char :: Char -> Parser Char
-char x = satisfy (x ==)
-
-string :: String -> Parser String
-string cs = foldr (\x pxs ->
-                  (:) <$> char x <*> pxs)
-                  (produce []) cs
+satisfy p = item >>= \c ->
+  if p c
+  then unit c
+  else (Parser (\cs -> []))
 
 oneOf :: [Char] -> Parser Char
-oneOf x = satisfy (flip elem x)
+oneOf s = satisfy (flip elem s)
+
+chain1 :: Parser a -> Parser (a -> a -> a) -> Parser a
+chain1 p op = do {a <- p; rest a}
+  where rest a = (do f <- op
+                     b <- p
+                     rest (f a b))
+                 <|> return a
+
+chain :: Parser a -> Parser (a -> a -> a) -> a -> Parser a
+chain p op a = (chain1 p op) <|> return a
+
+
+char :: Char -> Parser Char
+char c = satisfy (c ==)
 
 natural :: Parser Integer
 natural = read <$> some (satisfy isDigit)
 
-sepBy1 :: Alternative m => m a -> m x -> m [a]
-sepBy1 p x = (:) <$> p <*> many (x *> p)
+string :: String -> Parser String
+string [] = return []
+string (c:cs) = do { char c; string cs; return (c:cs)}
 
-cr :: Parser [Char]
-cr = some (oneOf "\r\n")
+token :: Parser a -> Parser a
+token p = do { a <- p; spaces ; return a}
 
-tok :: String -> Parser String
-tok t = string t <* whitespace
+reserved :: String -> Parser String
+reserved s = token (string s)
 
-whitespace :: Parser ()
-whitespace = many (oneOf " \t") *> produce ()
+spaces :: Parser String
+spaces = many $ oneOf " \n\r"
 
-wrap :: Char -> String
-wrap c = [c]
+digit :: Parser Char
+digit = satisfy isDigit
 
-
+parens :: Parser a -> Parser a
+parens m = do
+  reserved "("
+  n <- m
+  reserved ")"
+  return n
