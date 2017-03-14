@@ -1,6 +1,6 @@
 module WhileParser where
-import Prelude hiding (Num)
-import qualified Prelude (Num)
+import Prelude hiding (Num, Bool)
+import qualified Prelude (Num, Bool)
 import Data.Char
 import Control.Monad
 import Control.Applicative
@@ -13,14 +13,14 @@ number = do
   cs <- some digit
   return $ read (s ++ cs)
 
-boolean :: Parser Boo
+boolean :: Parser Bool
 boolean = do
   s <- string "true" <|> string "false"
   if (s == "true")
      then return TRUE
      else return FALSE
 
-data Bexp = T Boo
+data Bexp = T Bool
           | Neg Bexp
           | And Bexp Bexp
           | Imp Bexp Bexp
@@ -36,7 +36,7 @@ data Aexp = N Num
 type Num = Integer
 type Var = String
 
-data Boo = TRUE
+data Bool = TRUE
          | FALSE
          deriving Show
 
