@@ -4,6 +4,7 @@ import qualified Prelude (Num)
 import Data.Char
 import Control.Monad
 import Control.Applicative
+import Debug.Trace
 import Par_lib
 
 number :: Parser Num
@@ -12,17 +13,17 @@ number = do
   cs <- some digit
   return $ read (s ++ cs)
 
-boolean :: Parser Bool
+boolean :: Parser Boo
 boolean = do
   s <- string "true" <|> string "false"
-  return $ read s
+  if (s == "true")
+     then return TRUE
+     else return FALSE
 
-data Bexp = T Bool
+data Bexp = T Boo
           | Neg Bexp
           | And Bexp Bexp
           | Imp Bexp Bexp
-          | Le Aexp Aexp
-          | Eq Aexp Aexp
         deriving Show
 
 data Aexp = N Num
@@ -34,6 +35,10 @@ data Aexp = N Num
 
 type Num = Integer
 type Var = String
+
+data Boo = TRUE
+         | FALSE
+         deriving Show
 
 eval :: Aexp -> Integer
 eval ex = case ex of
@@ -56,10 +61,7 @@ infixOp :: String -> (a -> a -> a) -> Parser (a -> a -> a)
 infixOp x f = reserved x >> return f
 
 bexp :: Parser Bexp
-bexp = chain1 bterm bop
-
-bterm :: Parser Bexp
-bterm = chain1 bfactor aop
+bexp = chain1 bfactor bop
 
 bfactor :: Parser Bexp
 bfactor = 
@@ -75,10 +77,6 @@ neg = do
 bop :: Parser (Bexp -> Bexp -> Bexp)
 bop =  (infixOp "&&" And) 
    <|> (infixOp "->" Imp)
-
-aop :: Parser (Aexp -> Aexp -> Aexp)
-aop =  (infixOp "==" Eq) 
-   <|> (infixOp "<=" Le) 
 
 
 aexp :: Parser Aexp
@@ -98,6 +96,6 @@ addop = (infixOp "+" Add) <|> (infixOp "-" Sub)
 mulop :: Parser (Aexp -> Aexp -> Aexp)
 mulop = infixOp "*" Mul
 
-run :: String -> Aexp
-run = runParser aexp
+run :: String -> Bexp
+run = runParser bexp
 
