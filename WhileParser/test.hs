@@ -24,6 +24,11 @@ data Bexp = T Bool
           | Neg Bexp
           | And Bexp Bexp
           | Imp Bexp Bexp
+          | Bop
+        deriving Show
+
+data Aop =  Le Aexp Aexp
+          | Eq Aexp Aexp
         deriving Show
 
 data Aexp = N Num
@@ -60,8 +65,16 @@ bool = do
 infixOp :: String -> (a -> a -> a) -> Parser (a -> a -> a)
 infixOp x f = reserved x >> return f
 
+infixOpb :: String -> (a -> a -> b) -> Parser (a -> a -> b)
+infixOpb x f = reserved x >> return f
+
+
+
 bexp :: Parser Bexp
-bexp = chain1 bfactor bop
+bexp = chain1 bterm bop
+
+bterm :: Parser Bexp
+bterm = chain1 bfactor aop
 
 bfactor :: Parser Bexp
 bfactor = 
@@ -78,6 +91,9 @@ bop :: Parser (Bexp -> Bexp -> Bexp)
 bop =  (infixOp "&&" And) 
    <|> (infixOp "->" Imp)
 
+aop :: Parser (Aexp -> Aexp -> Aop)
+aop =  (infixOpb "<=" Le)
+   <|>  (infixOpb "==" Eq)
 
 aexp :: Parser Aexp
 aexp = chain1 aterm addop
