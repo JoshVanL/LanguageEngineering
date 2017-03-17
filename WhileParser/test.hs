@@ -20,15 +20,25 @@ boolean = do
      then return TRUE
      else return FALSE
 
+
+data Stm = Seq [Stm]
+         | Ass Var Aexp 
+         | Skip 
+         | Comp Stm Stm 
+         | If Bexp Stm Stm
+         | While Bexp Stm
+        deriving (Show)
+
 data Bexp = T Bool
           | Neg Bexp
-          | And Bexp Bexp
-          | Imp Bexp Bexp
-          | Bop
+          | BBinary Bop Bexp Bexp
+          | ABinary Aop Aexp Aexp
         deriving Show
 
-data Aop =  Le Aexp Aexp
-          | Eq Aexp Aexp
+data Aop =  Le | Eq 
+        deriving Show
+
+data Bop =  And | Imp
         deriving Show
 
 data Aexp = N Num
@@ -68,8 +78,6 @@ infixOp x f = reserved x >> return f
 infixOpb :: String -> (a -> a -> b) -> Parser (a -> a -> b)
 infixOpb x f = reserved x >> return f
 
-
-
 bexp :: Parser Bexp
 bexp = chain1 bterm bop
 
@@ -87,7 +95,7 @@ neg = do
   b <- bexp
   return (Neg b)
 
-bop :: Parser (Bexp -> Bexp -> Bexp)
+bop :: Parser (Bop -> Bop -> Bop)
 bop =  (infixOp "&&" And) 
    <|> (infixOp "->" Imp)
 
