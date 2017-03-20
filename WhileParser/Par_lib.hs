@@ -79,7 +79,14 @@ chain1 p op = do {a <- p; rest a}
                      b <- p
                      rest (f a b))
                  <|> return a
-
+                 
+bchain1 :: Parser a -> Parser (a -> a -> b) -> Parser b
+bchain1 p op = do {a <- p; rest a}
+  where rest a = (do f <- op
+                     b <- p
+                     m <- (f a b)
+                     rest m) 
+                 
 chain :: Parser a -> Parser (a -> a -> a) -> a -> Parser a
 chain p op a = (chain1 p op) <|> return a
 

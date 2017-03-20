@@ -17,43 +17,39 @@ boolean :: Parser Bool
 boolean = do
   s <- string "true" <|> string "false"
   if (s == "true")
-     then return TRUE
-     else return FALSE
+    then return TRUE
+    else return FALSE
 
 
 data Stm = Seq [Stm]
-         | Ass Var Aexp 
-         | Skip 
-         | Comp Stm Stm 
-         | If Bexp Stm Stm
-         | While Bexp Stm
+        | Ass Var Aexp 
+        | Skip 
+        | Comp Stm Stm 
+        | If Bexp Stm Stm
+        | While Bexp Stm
         deriving (Show)
 
 data Bexp = T Bool
-          | Neg Bexp
-          | BBinary Bop Bexp Bexp
-          | ABinary Aop Aexp Aexp
-        deriving Show
-
-data Aop =  Le | Eq 
-        deriving Show
-
-data Bop =  And | Imp
+        | Neg Bexp
+        | And Bexp Bexp
+        | Imp Bexp Bexp
+        | Eq  Aexp Aexp
+        | Le  Aexp Aexp
         deriving Show
 
 data Aexp = N Num
-          | V Var
-          | Add Aexp Aexp
-          | Sub Aexp Aexp
-          | Mul Aexp Aexp
-          deriving Show
+        | V Var
+        | Add Aexp Aexp
+        | Sub Aexp Aexp
+        | Mul Aexp Aexp
+        deriving Show
 
 type Num = Integer
 type Var = String
 
 data Bool = TRUE
-         | FALSE
-         deriving Show
+        | FALSE
+        deriving Show
 
 eval :: Aexp -> Integer
 eval ex = case ex of
@@ -79,15 +75,14 @@ infixOpb :: String -> (a -> a -> b) -> Parser (a -> a -> b)
 infixOpb x f = reserved x >> return f
 
 bexp :: Parser Bexp
-bexp = chain1 bterm bop
+bexp = chain1 bfactor bop
 
 bterm :: Parser Bexp
-bterm = chain1 bfactor aop
+bterm = bchain1 afactor aop
 
 bfactor :: Parser Bexp
-bfactor = 
-         bool
-     <|> parens bexp
+bfactor = bool
+       <|> parens bexp
 
 neg :: Parser Bexp
 neg = do
@@ -95,11 +90,11 @@ neg = do
   b <- bexp
   return (Neg b)
 
-bop :: Parser (Bop -> Bop -> Bop)
+bop :: Parser (Bexp -> Bexp -> Bexp)
 bop =  (infixOp "&&" And) 
    <|> (infixOp "->" Imp)
 
-aop :: Parser (Aexp -> Aexp -> Aop)
+aop :: Parser (Aexp -> Aexp -> Bexp)
 aop =  (infixOpb "<=" Le)
    <|>  (infixOpb "==" Eq)
 
@@ -110,9 +105,8 @@ aterm :: Parser Aexp
 aterm = chain1 afactor mulop
 
 afactor :: Parser Aexp
-afactor =
-      num
-  <|> parens aexp
+afactor = num
+       <|> parens aexp
 
 addop :: Parser (Aexp -> Aexp -> Aexp)
 addop = (infixOp "+" Add) <|> (infixOp "-" Sub)
