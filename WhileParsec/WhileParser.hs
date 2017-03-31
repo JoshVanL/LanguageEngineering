@@ -18,6 +18,8 @@ type Pname = String
 type DecV = [(Var,Aexp)]
 type DecP = [(Pname,Stm)]
 
+
+
 data Stm = Seq [Stm]
          | Skip
          | Ass Var Aexp 
@@ -69,6 +71,12 @@ languageDef =
                                      , "!"
                                      , ";"
                                      , "&"
+                                     , "call"
+                                     , "begin"
+                                     , "end"
+                                     , "var"
+                                     , "proc"
+                                     , "is"
                                      ]
            , Token.reservedOpNames = ["+", "-", "*", ":="
                                      , "<", "&", "!", "=", ";"
@@ -101,17 +109,13 @@ compStm = buildExpressionParser compOp statement'
 
 compOp = [[Infix  (reservedOp ";"   >> return (Comp )) AssocLeft]]
 
-sequenceOfStm =
-  do list <- (sepBy1 statement' semi)
-     -- If there's only one statement return it without using Seq.
-     return $ if length list == 1 then head list else Seq list
-
-
 statement' :: Parser Stm
 statement' =  ifStm
           <|> whileStm
           <|> skipStm
           <|> assignStm
+          <|> blockStm
+          <|> callStm
 
 ifStm :: Parser Stm
 ifStm =
@@ -141,11 +145,47 @@ assignStm =
 skipStm :: Parser Stm
 skipStm = reserved "skip" >> return Skip
 
+callStm :: Parser Stm
+callStm = 
+  do reserved "call"
+     call <- pname
+     return $ Call call
+
+blockStm :: Parser Stm
+blockStm =
+  do reserved "begin"
+     d <- many (decV)
+     p <- many (decP)
+     s <- statement
+     reserved "end"
+     return $ Block d p s
+
+decV :: Parser (Var,Aexp)
+decV = 
+  do reserved "var"
+     var <- identifier
+     reservedOp ":="
+     expr <- aTerm
+     reserved ";"
+     return $ (var, expr)
+
+decP :: Parser (Pname, Stm)
+decP = 
+  do reserved "proc" 
+     pro <- pname
+     reserved "is"
+     s <- statement'
+     reserved ";"
+     return $ (pro, s)
+
 aexp :: Parser Aexp
 aexp = buildExpressionParser aOp aTerm
 
 bexp :: Parser Bexp
 bexp = buildExpressionParser bOp bTerm
+
+pname :: Parser Pname
+pname = identifier
 
 aOp = [        [Infix  (reservedOp "*"   >> return (ABinary Mult)) AssocLeft ]
              , [Infix  (reservedOp "+"   >> return (ABinary Add     )) AssocLeft,
