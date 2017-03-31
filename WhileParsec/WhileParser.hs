@@ -12,6 +12,8 @@ import qualified Text.ParserCombinators.Parsec.Token as Token
 type Num = Integer
 type Var = String
 
+type StateS = Var -> Z
+
 type Z = Integer
 type T = Bool
 type Pname = String
@@ -226,3 +228,77 @@ parseFile file =
      case parse whileParser "" program of
        Left e  -> print e >> fail "parse error"
        Right r -> return r
+
+
+
+n_val :: Num -> Z
+n_val x = x 
+
+s :: StateS
+s "x" = n_val 1
+s "y" = n_val 2
+s "z" = n_val 3
+s var = n_val 0
+
+a_val :: Aexp -> StateS -> Z
+a_val (N n) s = n_val n
+a_val (V v) s = s v
+a_val (ABinary Mult a1 a2) s = (a_val a1 s) * (a_val a2 s)
+a_val (ABinary Add a1 a2) s = (a_val a1 s) + (a_val a2 s)
+a_val (ABinary Sub a1 a2) s = (a_val a1 s) - (a_val a2 s)
+
+b_val :: Bexp -> StateS -> T
+b_val TRUE s = True
+b_val FALSE s = False
+b_val (Neg b) s = case b_val b s of 
+                    True -> False
+                    False -> True
+b_val (BBinary And b1 b2) s = case ((b_val b1 s), (b_val b2 s)) of 
+                               (True, True) -> True
+                               otherwise -> False
+b_val (RBinary Eq a1 a2) s = if (a_val a1 s) == (a_val a2 s)
+                               then True
+                               else False
+b_val (RBinary Le a1 a2) s = if (a_val a1 s) <= (a_val a2 s)
+                        then True
+                        else False 
+
+fv_aexp :: Aexp -> [Var]
+fv_aexp (V v) = [v]
+fv_aexp (N n) = []
+fv_aexp (ABinary Mult a1 a2) = (++) (fv_aexp a1) (fv_aexp a2)
+fv_aexp (ABinary Add a1 a2) = (++) (fv_aexp a1) (fv_aexp a2)
+fv_aexp (ABinary Sub a1 a2) = (++) (fv_aexp a1) (fv_aexp a2)
+
+subst_aexp :: Aexp -> Var -> Aexp -> Aexp
+subst_aexp (V var) v a2 = if (var == v)
+                             then a2
+                             else V var
+subst_aexp (N n) v a2 = N n
+subst_aexp (ABinary Mult a11 a12) v a2 = ABinary Mult (subst_aexp a11 v a2) (subst_aexp a12 v a2)
+subst_aexp (ABinary Add a11 a12) v a2 = ABinary Add (subst_aexp a11 v a2) (subst_aexp a12 v a2)
+subst_aexp (ABinary Sub a11 a12) v a2 = ABinary Sub (subst_aexp a11 v a2) (subst_aexp a12 v a2) 
+
+update :: StateS -> Z -> Var -> StateS
+update s i v y = if(v == y) 
+                    then i
+                    else s y
+
+s' :: StateS
+s' "x" = n_val 5
+
+cond :: (a -> T, a -> a, a -> a) -> (a -> a)
+cond (c, a1, a2) s = if (c s)
+                        then (a1 s)
+                        else (a2 s)
+
+fix :: ((StateS -> StateS) -> (StateS -> StateS)) -> (StateS -> StateS)
+fix ff = ff (fix ff)
+
+s_ds :: Stm -> StateS -> StateS
+s_ds (Ass var ax) s = update s (a_val ax s) var
+s_ds Skip s = s
+s_ds (Comp sm1 sm2) s = (s_ds sm2 (s_ds sm1 s))
+s_ds (If b sm1 sm2) s = cond (b_val b, s_ds sm1, s_ds sm2) s
+s_ds (While b sm) s = fix ff s where
+    ff g = cond (b_val b, g . s_ds sm, id)
