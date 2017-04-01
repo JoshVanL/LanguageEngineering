@@ -2,6 +2,8 @@ module ParseWhile where
 import Prelude hiding (Num)
 import qualified Prelude (Num)
 
+import Debug.Trace
+
 import System.IO
 import Control.Monad
 import Text.ParserCombinators.Parsec
@@ -229,13 +231,18 @@ parseFile file =
        Left e  -> print e >> fail "parse error"
        Right r -> return r
 
-
+eval :: String -> IO Z
+eval file = 
+  do o <- parseFile file
+     case s_ds o s "x" of
+       Left e  -> print e >> fail "parse error"
+       Right r -> return r
 
 n_val :: Num -> Z
 n_val x = x 
 
 s :: StateS
-s "x" = n_val 1
+s "x" = n_val 5
 s "y" = n_val 2
 s "z" = n_val 3
 s var = n_val 0
