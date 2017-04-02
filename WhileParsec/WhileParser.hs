@@ -231,12 +231,11 @@ parseFile file =
        Left e  -> print e >> fail "parse error"
        Right r -> return r
 
-eval :: String -> IO Z
-eval file = 
-  do o <- parseFile file
-     case s_ds o s "x" of
-       Left e  -> print e >> fail "parse error"
-       Right r -> return r
+
+evalString :: String -> String -> StateS
+evalString str v = 
+  do stm <- parseString
+     s_ds stm s
 
 n_val :: Num -> Z
 n_val x = x 

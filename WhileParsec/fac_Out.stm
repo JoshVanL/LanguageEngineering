@@ -1,0 +1,2 @@
+Comp (Ass "y" (N 1)) (While (Neg (RBinary Eq (V "x") (N 1))) (Comp (Ass "y" (ABinary Mult (V "y") (V "x"))) (Ass "x" (ABinary Sub (V "x") (N 1)))))
+
