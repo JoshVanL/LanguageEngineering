@@ -6,7 +6,7 @@ import Debug.Trace
 
 import System.IO
 import Control.Monad
-import Text.ParserCombinators.Parsec
+import Text.ParserCombinators.Parsec hiding (State)
 import Text.ParserCombinators.Parsec.Expr
 import Text.ParserCombinators.Parsec.Language
 import qualified Text.ParserCombinators.Parsec.Token as Token
@@ -14,14 +14,11 @@ import qualified Text.ParserCombinators.Parsec.Token as Token
 type Num = Integer
 type Var = String
 
-type StateS = Var -> Z
+type State = Var -> Z
 
 type Z = Integer
 type T = Bool
 type Pname = String
-type DecV = [(Var,Aexp)]
-type DecP = [(Pname,Stm)]
-
 
 data Aexp = N Num 
           | V Var 
@@ -220,20 +217,20 @@ parseFile file =
        Left e  -> print e >> fail "parse error"
        Right r -> return r
 
-evalString :: String -> StateS -> StateS
+evalString :: String -> State -> State
 evalString str s = s_ds (parseString str) s
 
 n_val :: Num -> Z
 n_val x = x 
 
-a_val :: Aexp -> StateS -> Z
+a_val :: Aexp -> State -> Z
 a_val (N n) s = n_val n
 a_val (V v) s = s v
 a_val (Mult a1 a2) s = (a_val a1 s) * (a_val a2 s)
 a_val (Add a1 a2) s = (a_val a1 s) + (a_val a2 s)
 a_val (Sub a1 a2) s = (a_val a1 s) - (a_val a2 s)
 
-b_val :: Bexp -> StateS -> T
+b_val :: Bexp -> State -> T
 b_val TRUE s = True
 b_val FALSE s = False
 b_val (Neg b) s = case b_val b s of 
@@ -265,15 +262,15 @@ subst_aexp (Mult a11 a12) v a2 =  Mult (subst_aexp a11 v a2) (subst_aexp a12 v a
 subst_aexp (Add a11 a12) v a2  = Add (subst_aexp a11 v a2) (subst_aexp a12 v a2)
 subst_aexp (Sub a11 a12) v a2  = Sub (subst_aexp a11 v a2) (subst_aexp a12 v a2) 
 
-update :: StateS -> Z -> Var -> StateS
+update :: State -> Z -> Var -> State
 update s i v y = if(v == y) 
                     then i
                     else s y
 
-s' :: StateS
+s' :: State
 s' "x" = n_val 5
 
-s :: StateS
+s :: State
 s "x" = n_val 5
 s "y" = n_val 2
 s "z" = n_val 3
@@ -287,13 +284,29 @@ cond (c, a1, a2) s = if (c s)
                         then (a1 s)
                         else (a2 s)
 
-fix :: ((StateS -> StateS) -> (StateS -> StateS)) -> (StateS -> StateS)
+fix :: ((State -> State) -> (State -> State)) -> (State -> State)
 fix ff = ff (fix ff)
 
-s_ds :: Stm -> StateS -> StateS
+s_ds :: Stm -> State -> State
 s_ds (Ass var ax) s = update s (a_val ax s) var
 s_ds Skip s = s
 s_ds (Comp sm1 sm2) s = (s_ds sm2 (s_ds sm1 s))
 s_ds (If b sm1 sm2) s = cond (b_val b, s_ds sm1, s_ds sm2) s
 s_ds (While b sm) s = fix ff s where
     ff g = cond (b_val b, g . s_ds sm, id)
+
+new :: Loc -> Loc
+new l = l + 1
+
+type DecV = [(Var,Aexp)]
+type DecP = [(Pname,Stm)]
+type Loc = Num
+
+type EnvV = Var -> Loc
+type EnvP = Pname -> Stm
+
+envp :: Stm -> State -> State
+envp stm s = s_ds stm s
+
+upd_p :: Pname -> Stm -> DecP -> EnvP -> EnvP
+upd_p p s d e = upd_p (d, envp p s)
