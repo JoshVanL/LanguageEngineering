@@ -18,13 +18,6 @@ type T = Bool
 type Pname = String
 
 
-type DecV = [(Var,Aexp)]
-type DecP = [(Pname,Stm)]
-type Loc = Num
-
-type EnvV = Var -> Loc
-type EnvP = Pname -> Stm
-
 data Aexp = N Num 
           | V Var 
           | Mult Aexp Aexp
@@ -228,3 +221,30 @@ s_ds (Comp sm1 sm2) s = (s_ds sm2 (s_ds sm1 s))
 s_ds (If b sm1 sm2) s = cond (b_val b, s_ds sm1, s_ds sm2) s
 s_ds (While b sm) s = fix ff s where
     ff g = cond (b_val b, g . s_ds sm, id)
+
+new :: Loc -> Loc
+new l = l + 1
+
+envp :: EnvP
+envp "s" = Skip
+envp var = Skip
+
+updateEnvp :: EnvP -> Stm -> Pname -> EnvP
+updateEnvp e s p y = if(p == y)
+                    then s
+                    else e y
+
+upd_p :: (DecP, EnvP) -> EnvP
+upd_p (((p,s):ds), envp) = 
+  do envp <- updateEnvp envp s
+     upd_p (ds, envp)
+upd_p (_, envp) = envp
+
+
+type DecV = [(Var,Aexp)]
+type DecP = [(Pname,Stm)]
+type Loc = Num
+
+type EnvV = Var -> Loc
+type EnvP = Pname -> Stm
+
