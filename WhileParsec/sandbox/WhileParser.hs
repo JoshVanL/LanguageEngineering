@@ -3,7 +3,7 @@ module WhileParser where
 import Prelude hiding (Num)
 import qualified Prelude (Num)
 import Control.Applicative
-import Text.Megaparsec
+import Text.Megaparsec hiding (State)
 import Text.Megaparsec.String
 import Text.Megaparsec.Expr
 import Data.List (intercalate)
@@ -153,3 +153,78 @@ parseFile file =
      case parse statement "" program of
        Left e  -> print e >> fail "parse error"
        Right r -> return r
+
+n_val :: Num -> Z
+n_val x = x 
+
+a_val :: Aexp -> State -> Z
+a_val (N n) s = n_val n
+a_val (V v) s = s v
+a_val (Mult a1 a2) s = (a_val a1 s) * (a_val a2 s)
+a_val (Add a1 a2) s = (a_val a1 s) + (a_val a2 s)
+a_val (Sub a1 a2) s = (a_val a1 s) - (a_val a2 s)
+
+b_val :: Bexp -> State -> T
+b_val TRUE s = True
+b_val FALSE s = False
+b_val (Neg b) s = case b_val b s of 
+                    True -> False
+                    False -> True
+b_val (And b1 b2) s = case ((b_val b1 s), (b_val b2 s)) of 
+                       (True, True) -> True
+                       otherwise -> False
+b_val (Eq a1 a2) s = if (a_val a1 s) == (a_val a2 s)
+                       then True
+                       else False
+b_val (Le a1 a2) s = if (a_val a1 s) <= (a_val a2 s)
+                        then True
+                        else False 
+
+fv_aexp :: Aexp -> [Var]
+fv_aexp (V v) = [v]
+fv_aexp (N n) = []
+fv_aexp (Mult a1 a2) = (++) (fv_aexp a1) (fv_aexp a2)
+fv_aexp (Add a1 a2) = (++) (fv_aexp a1) (fv_aexp a2)
+fv_aexp (Sub a1 a2) = (++) (fv_aexp a1) (fv_aexp a2)
+
+subst_aexp :: Aexp -> Var -> Aexp -> Aexp
+subst_aexp (V var) v a2 = if (var == v)
+                             then a2
+                             else V var
+subst_aexp (N n) v a2 = N n
+subst_aexp (Mult a11 a12) v a2 =  Mult (subst_aexp a11 v a2) (subst_aexp a12 v a2)
+subst_aexp (Add a11 a12) v a2  = Add (subst_aexp a11 v a2) (subst_aexp a12 v a2)
+subst_aexp (Sub a11 a12) v a2  = Sub (subst_aexp a11 v a2) (subst_aexp a12 v a2) 
+
+update :: State -> Z -> Var -> State
+update s i v y = if(v == y) 
+                    then i
+                    else s y
+
+s' :: State
+s' "x" = n_val 5
+
+s :: State
+s "x" = n_val 5
+s "y" = n_val 2
+s "z" = n_val 3
+s var = n_val 0
+
+p :: Stm
+p = Comp (Ass "y" (N 1)) (While (Neg (Eq (V "x") (N 1))) (Comp (Ass "y" (Mult (V "y") (V "x"))) (Ass "x" (Sub (V "x") (N 1)))))
+
+cond :: (a -> T, a -> a, a -> a) -> (a -> a)
+cond (c, a1, a2) s = if (c s)
+                        then (a1 s)
+                        else (a2 s)
+
+fix :: ((State -> State) -> (State -> State)) -> (State -> State)
+fix ff = ff (fix ff)
+
+s_ds :: Stm -> State -> State
+s_ds (Ass var ax) s = update s (a_val ax s) var
+s_ds Skip s = s
+s_ds (Comp sm1 sm2) s = (s_ds sm2 (s_ds sm1 s))
+s_ds (If b sm1 sm2) s = cond (b_val b, s_ds sm1, s_ds sm2) s
+s_ds (While b sm) s = fix ff s where
+    ff g = cond (b_val b, g . s_ds sm, id)
