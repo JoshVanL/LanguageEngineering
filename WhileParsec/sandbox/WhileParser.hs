@@ -197,9 +197,9 @@ s' :: State
 s' "x" = n_val 5
 
 s :: State
-s "x" = n_val 0
-s "y" = n_val 0
-s "z" = n_val 0
+s "x" = n_val 5
+s "y" = n_val 9
+s "z" = n_val 5
 s var = n_val 0
 
 p :: Stm
@@ -225,9 +225,8 @@ new :: Loc -> Loc
 new l = l + 1
 
 envp :: EnvP
-envp "s" = Skip
-envp "p" = (Ass "x" (Mult (V "x") (N 2)))
-envp "q" = Call "p"
+envp "p" = Skip
+envp "q" = Skip
 envp var = Skip
 
 updateEnvp :: EnvP -> Stm -> Pname -> EnvP
@@ -237,8 +236,8 @@ updateEnvp e s p y = if(p == y)
 
 upd_p :: (DecP, EnvP) -> EnvP
 upd_p (((p,s):ds), ep) = 
-  do ep <- updateEnvp ep s
-     upd_p (ds, ep)
+  do ep' <- updateEnvp ep s
+     upd_p (ds, ep')
 upd_p (_, ep) = ep
 
 update_dynamic :: DecV -> State -> State
@@ -251,8 +250,8 @@ update_dynamic _ s = s
 --                    else s y
 
 --call :: EnvP -> State -> State
---call (Call pn) s = s_ds nvp pn
-
+--call (Call pn) s = s_ds nvp 
+--
 s_dyn :: EnvP -> Stm -> State -> State
 s_dyn ep (Ass var ax) s = update s (a_val ax s) var
 s_dyn ep Skip s = s
@@ -267,6 +266,8 @@ s_dynamic :: Stm -> State -> State
 s_dynamic sm s = s_dyn envp sm s
 --s_d :: Stm -> State -> State
 --s_ds (Block dv dp sm) s = s_dyn (upd_p dv) sm (update_dynamic dv s)
+--
+--
 
 type DecV = [(Var,Aexp)]
 type DecP = [(Pname,Stm)]
