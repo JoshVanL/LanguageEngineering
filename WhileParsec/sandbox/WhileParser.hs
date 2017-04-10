@@ -244,14 +244,6 @@ update_dynamic :: DecV -> State -> State
 update_dynamic ((v,a):ds) s = update_dynamic ds (update s (a_val a s) v)
 update_dynamic _ s = s
 
---update :: State -> Z -> Var -> State
---update s i v y = if(v == y) 
---                    then i
---                    else s y
-
---call :: EnvP -> State -> State
---call (Call pn) s = s_ds nvp 
---
 s_dyn :: EnvP -> Stm -> State -> State
 s_dyn ep (Ass var ax) s = update s (a_val ax s) var
 s_dyn ep Skip s = s
@@ -260,14 +252,10 @@ s_dyn ep (If b sm1 sm2) s = cond (b_val b, s_dyn ep sm1, s_dyn ep sm2) s
 s_dyn ep (While b sm) s = fix ff s where
     ff g = cond (b_val b, g . s_dyn ep sm, id)
 s_dyn ep (Block dv dp sm) s  = s_dyn (upd_p (dp, ep)) sm (update_dynamic dv s)
-s_dyn ep (Call pn) s = s_dyn ep (envp pn) s
+s_dyn ep (Call pn) s = s_dyn ep (ep pn) s
 
 s_dynamic :: Stm -> State -> State
 s_dynamic sm s = s_dyn envp sm s
---s_d :: Stm -> State -> State
---s_ds (Block dv dp sm) s = s_dyn (upd_p dv) sm (update_dynamic dv s)
---
---
 
 type DecV = [(Var,Aexp)]
 type DecP = [(Pname,Stm)]
