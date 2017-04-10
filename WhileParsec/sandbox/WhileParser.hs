@@ -234,33 +234,49 @@ updateEnvp e s p y = if(p == y)
                     then s
                     else e y
 
-upd_p :: (DecP, EnvP) -> EnvP
-upd_p (((p,s):ds), ep) = 
+upd_pd :: (DecP, EnvP) -> EnvP
+upd_pd (((p,s):ds), ep) = 
   do ep' <- updateEnvp ep s
-     upd_p (ds, ep')
-upd_p (_, ep) = ep
+     upd_pd (ds, ep')
+upd_pd (_, ep) = ep
 
 update_dynamic :: DecV -> State -> State
 update_dynamic ((v,a):ds) s = update_dynamic ds (update s (a_val a s) v)
 update_dynamic _ s = s
 
-s_dyn :: EnvP -> Stm -> State -> State
-s_dyn ep (Ass var ax) s = update s (a_val ax s) var
-s_dyn ep Skip s = s
-s_dyn ep (Comp sm1 sm2) s = (s_dyn ep sm2 (s_dyn ep sm1 s))
-s_dyn ep (If b sm1 sm2) s = cond (b_val b, s_dyn ep sm1, s_dyn ep sm2) s
-s_dyn ep (While b sm) s = fix ff s where
-    ff g = cond (b_val b, g . s_dyn ep sm, id)
-s_dyn ep (Block dv dp sm) s  = s_dyn (upd_p (dp, ep)) sm (update_dynamic dv s)
-s_dyn ep (Call pn) s = s_dyn ep (ep pn) s
+s_dn :: EnvP -> Stm -> State -> State
+s_dn ep (Ass var ax) s = update s (a_val ax s) var
+s_dn ep Skip s = s
+s_dn ep (Comp sm1 sm2) s = (s_dn ep sm2 (s_dn ep sm1 s))
+s_dn ep (If b sm1 sm2) s = cond (b_val b, s_dn ep sm1, s_dn ep sm2) s
+s_dn ep (While b sm) s = fix ff s where
+    ff g = cond (b_val b, g . s_dn ep sm, id)
+s_dn ep (Block dv dp sm) s  = s_dn (upd_pd (dp, ep)) sm (update_dynamic dv s)
+s_dn ep (Call pn) s = s_dn ep (ep pn) s
 
 s_dynamic :: Stm -> State -> State
-s_dynamic sm s = s_dyn envp sm s
+s_dynamic sm s = s_dn envp sm s
+
+--s_mixed :: Stm -> State -> State
 
 type DecV = [(Var,Aexp)]
 type DecP = [(Pname,Stm)]
-type Loc = Num
 
+type Loc = Num
 type EnvV = Var -> Loc
 type EnvP = Pname -> Stm
+
+updateEnvp_m :: EnvP -> Stm -> Pname -> EnvP_m
+updateEnvp_m e s p y = if(p == y)
+                    then (s, e)
+                    else (e y, e)
+
+
+--upd_pm :: (DecP, EnvP_m) -> EnvP_m
+--upd_pm (((p,s):ds), ep) = 
+--  do ep' <- updateEnvp_m ep s
+--     upd_pm (ds, ep')
+--upd_pm (_, ep) = ep
+
+type EnvP_m = Pname -> (Stm, EnvP_m)
 
