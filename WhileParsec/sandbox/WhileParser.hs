@@ -258,25 +258,26 @@ s_dynamic :: Stm -> State -> State
 s_dynamic sm s = s_dn envp sm s
 
 --s_mixed :: Stm -> State -> State
+--
+
+--updateEnvps :: EnvPs -> Stm -> Pname -> EnvPs
+--updateEnvps e s p y = if(p == y)
+--                    then s e
+--                    else e y
+
+--upd_pm :: (DecP, EnvPs) -> EnvPs
+--upd_pm (((p,s):ds), ep) = 
+--  do ep' <- updateEnvp ep s
+--     upd_pm (ds, ep')
+--upd_pm (_, ep) = ep
 
 type DecV = [(Var,Aexp)]
 type DecP = [(Pname,Stm)]
 
 type Loc = Num
 type EnvV = Var -> Loc
+
 type EnvP = Pname -> Stm
-
-updateEnvp_m :: EnvP -> Stm -> Pname -> EnvP_m
-updateEnvp_m e s p y = if(p == y)
-                    then (s, e)
-                    else (e y, e)
-
-
---upd_pm :: (DecP, EnvP_m) -> EnvP_m
---upd_pm (((p,s):ds), ep) = 
---  do ep' <- updateEnvp_m ep s
---     upd_pm (ds, ep')
---upd_pm (_, ep) = ep
-
-type EnvP_m = Pname -> (Stm, EnvP_m)
-
+type EnvPs = Pname -> (Stm, EnvP_s)
+data EnvP_s = EnvP 
+            | EnvPs
