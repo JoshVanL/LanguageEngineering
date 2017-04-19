@@ -189,9 +189,9 @@ subst_aexp (Add a11 a12) v a2  = Add (subst_aexp a11 v a2) (subst_aexp a12 v a2)
 subst_aexp (Sub a11 a12) v a2  = Sub (subst_aexp a11 v a2) (subst_aexp a12 v a2) 
 
 update :: State -> Z -> Var -> State
-update s i v y = if(v == y) 
-                    then i
-                    else s y
+update s v x y
+  | x == y    = v
+  | otherwise = s y
 
 s' :: State
 s' "x" = n_val 5
@@ -257,15 +257,26 @@ s_dn ep (Call pn) s = s_dn ep (ep pn) s
 s_dynamic :: Stm -> State -> State
 s_dynamic sm s = s_dn envp sm s
 
+
+-------------------
+
+s_mx :: EnvP_s -> Stm -> State -> State
+s_mx ep (Ass var ax) s = update s (a_val ax s) var
+s_mx ep Skip s = s
+s_mx ep (Comp sm1 sm2) s = (s_mx ep sm2 (s_mx ep sm1 s))
+s_mx ep (If b sm1 sm2) s = cond (b_val b, s_mx ep sm1, s_mx ep sm2) s
+s_mx ep (While b sm) s = fix ff s where
+    ff g = cond (b_val b, g . s_mx ep sm, id)
+
 --s_mixed :: Stm -> State -> State
 --
 
---updateEnvps :: EnvPs -> Stm -> Pname -> EnvPs
+--updateEnvps :: EnvP_s -> Stm -> Pname -> EnvP_s
 --updateEnvps e s p y = if(p == y)
---                    then s e
+--                    then s 
 --                    else e y
 
---upd_pm :: (DecP, EnvPs) -> EnvPs
+--upd_pm :: (DecP, EnvP_s) -> EnvP_s
 --upd_pm (((p,s):ds), ep) = 
 --  do ep' <- updateEnvp ep s
 --     upd_pm (ds, ep')
