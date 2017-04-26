@@ -257,7 +257,6 @@ s_dn ep (Call pn) s = s_dn ep (ep pn) s
 s_dynamic :: Stm -> State -> State
 s_dynamic sm s = s_dn envp sm s
 
-
 -------------------
 
 s_mx :: EnvP_m -> Stm -> State -> State
@@ -267,13 +266,28 @@ s_mx ep (Comp sm1 sm2) s = (s_mx ep sm2 (s_mx ep sm1 s))
 s_mx ep (If b sm1 sm2) s = cond (b_val b, s_mx ep sm1, s_mx ep sm2) s
 s_mx ep (While b sm) s = fix ff s where
     ff g = cond (b_val b, g . s_mx ep sm, id)
-s_mx ep (Block dv dp sm) s  = s_mx (upd_pm ep dp) sm (update_s s dv)
---s_mx ep (Call pn) s = s_mx ep (run (ep pn)) s
+--s_mx ep (Block dv dp sm) s  = s_mx (upd_pm ep dp) sm (update_s s dv)
+s_mx ep (Block dv dp sm) s  = s_restored
+  where
+      s'  = update_s s dv
+      ep' = upd_pm ep dp
+      s'' = s_mx ep' sm s'
+      s_restored = (\v -> if (v `elem` (map fst dv)) then s v else s'' v)
+s_mx ep (Call pn) s = s'
+  where
+      (p_sm, p_ev) = run ep pn
+      rem = upd_pm p_ev [(pn, p_sm)]
+      s' = s_mx rem p_sm s
+
+--
 --s_dn ep (Block dv dp sm) s  = s_dn (upd_pd (dp, ep)) sm (update_dynamic dv s)
 --s_dn ep (Call pn) s = s_dn ep (ep pn) s
 
-s_mixed :: Stm -> State -> State
-s_mixed sm s = s_mx envp sm s
+--s_mixed :: Stm -> State -> State
+--s_mixed sm s = s_mx envp sm s
+
+--envps :: EnvP_m
+--envps x = (EnvP_m(envp x))
 
 
 updGen :: Eq a => (a -> b) -> b -> a -> (a -> b)
