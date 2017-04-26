@@ -260,27 +260,40 @@ s_dynamic sm s = s_dn envp sm s
 
 -------------------
 
-s_mx :: EnvP_s -> Stm -> State -> State
+s_mx :: EnvP_m -> Stm -> State -> State
 s_mx ep (Ass var ax) s = update s (a_val ax s) var
 s_mx ep Skip s = s
 s_mx ep (Comp sm1 sm2) s = (s_mx ep sm2 (s_mx ep sm1 s))
 s_mx ep (If b sm1 sm2) s = cond (b_val b, s_mx ep sm1, s_mx ep sm2) s
 s_mx ep (While b sm) s = fix ff s where
     ff g = cond (b_val b, g . s_mx ep sm, id)
+s_mx ep (Block dv dp sm) s  = s_mx (upd_pm ep dp) sm (update_s s dv)
+--s_mx ep (Call pn) s = s_mx ep (run (ep pn)) s
+--s_dn ep (Block dv dp sm) s  = s_dn (upd_pd (dp, ep)) sm (update_dynamic dv s)
+--s_dn ep (Call pn) s = s_dn ep (ep pn) s
 
---s_mixed :: Stm -> State -> State
---
+s_mixed :: Stm -> State -> State
+s_mixed sm s = s_mx envp sm s
 
---updateEnvps :: EnvP_s -> Stm -> Pname -> EnvP_s
---updateEnvps e s p y = if(p == y)
---                    then s 
---                    else e y
 
---upd_pm :: (DecP, EnvP_s) -> EnvP_s
---upd_pm (((p,s):ds), ep) = 
---  do ep' <- updateEnvp ep s
---     upd_pm (ds, ep')
---upd_pm (_, ep) = ep
+updGen :: Eq a => (a -> b) -> b -> a -> (a -> b)
+updGen en s p = (\x -> if p == x then s else en x)
+
+update_s :: State -> DecV -> State
+update_s s decV = foldl update_s' s decV
+  where
+      update_s' :: State -> (Var, Aexp) -> State
+      update_s' s (var, aexp) = \var' -> case () of
+               _ | var' == var -> a_val aexp s
+                 | otherwise   -> s var'
+
+upd_pm :: EnvP_m -> DecP -> EnvP_m
+upd_pm  envP decP = foldl upd_pm' envP decP
+  where
+      upd_pm' :: EnvP_m -> (Pname, Stm) -> EnvP_m
+      upd_pm' envP (pname, stm) = EnvP_m(\pname' -> case() of
+        _ | pname' == pname -> (stm, envP)
+          | otherwise       -> run envP pname')
 
 type DecV = [(Var,Aexp)]
 type DecP = [(Pname,Stm)]
@@ -289,6 +302,44 @@ type Loc = Num
 type EnvV = Var -> Loc
 
 type EnvP = Pname -> Stm
-type EnvPs = Pname -> (Stm, EnvP_s)
-data EnvP_s = EnvP 
-            | EnvPs
+--type EnvPs = Pname -> (Stm, EnvP_s)
+--data EnvP_s = EnvP 
+--            | EnvPs
+newtype EnvP_m = EnvP_m {run :: Pname -> (Stm, EnvP_m)}
+--s_mixed :: Stm -> State -> State
+--
+
+--updateEnvps :: EnvPs -> Stm -> Pname -> EnvPs
+--updateEnvps e1 s p y = if(p == y)
+--                    then (s, e1)
+--                    else e1 y
+--
+--extract :: Pname -> (Stm, EnvP_s) -> EnvP_s
+--extract p (s, e) = e
+
+
+--updateEnvp :: EnvP -> Stm -> Pname -> EnvP
+--updateEnvp e s p y = if(p == y)
+--                    then s
+--                    else e y
+
+--updateEnvp_s :: EnvP_s -> Stm -> Pname -> EnvP_s
+--updateEnvp_s e s p y = updateEnvp e s p y
+
+--upd_pd :: (DecP, EnvP) -> EnvP
+--upd_pd (((p,s):ds), ep) = 
+--  do ep' <- updateEnvp ep s
+--     upd_pd (ds, ep')
+--upd_pd (_, ep) = ep
+
+--upd_pm :: (DecP, EnvP_s) -> EnvP_s
+--upd_pm (((p,s):ds), ep) =
+--  do ep' <- EnvP_s (updGen s ep)
+--     upd_pm (ds, ep')
+--upd_pm (_, ep) = ep
+
+--updateEnvp_s :: EnvP_s -> Stm -> Pname -> EnvP_s
+--updateEnvp_s e s p y = if(p == y)
+--                    then s
+--                    else e y
+--
