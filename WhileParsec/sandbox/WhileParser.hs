@@ -283,11 +283,14 @@ s_mx ep (Call pn) s = s'
 --s_dn ep (Block dv dp sm) s  = s_dn (upd_pd (dp, ep)) sm (update_dynamic dv s)
 --s_dn ep (Call pn) s = s_dn ep (ep pn) s
 
---s_mixed :: Stm -> State -> State
---s_mixed sm s = s_mx envp sm s
+s_mixed :: Stm -> State -> State
+s_mixed sm s = s_mxd envp sm s
+
+--s_mxd e sm s = s_mx (EnvP_m(e)) sm s
 
 --envps :: EnvP_m
 --envps x = (EnvP_m(envp x))
+
 
 
 updGen :: Eq a => (a -> b) -> b -> a -> (a -> b)
