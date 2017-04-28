@@ -389,13 +389,13 @@ sos_stm (Inter (While b ss) s) = Inter (If b (Comp ss (While b ss)) Skip) s
 --      rem = upd_pm p_ev [(pn, p_sm)]
 --      s' = s_mx rem p_sm s
 
-s_dx :: EnvP  -> Config -> Config
-s_dx ep (Inter (Ass x a) s) = Final (update s x (a_val a s)) where
+s_mx :: EnvP_m  -> Config -> Config
+s_mx ep (Inter (Ass x a) s) = Final (update s x (a_val a s)) where
     update s x v y = case x == y of
                        True      -> v
                        otherwise -> s y
-s_dx ep (Inter Skip s) = Final s
-s_dx ep (Inter (Comp ss1 ss2) s)  = case is_Final(s_mx ep (Inter ss1 s)) of
+s_mx ep (Inter Skip s) = Final s
+s_mx ep (Inter (Comp ss1 ss2) s)  = case is_Final(s_mx ep (Inter ss1 s)) of
                                       True -> Inter ss2 s' where
                                           Final s' = s_mx ep (Inter ss1 s)
                                       otherwise -> Inter (Comp ss1' ss2) s' where
@@ -407,8 +407,24 @@ s_mx ep (Inter (While b ss) s) = Inter (If b (Comp ss (While b ss)) Skip) s
 s_mx ep (Inter (Block dv dp sm) s)  = Final s_res where
     s' = update_s s dv
     ep' = upd_pm ep dp
-    Final s'' = s_mx ep'
-s_mx ep (Inter (Call pn) s) = s_mx ep (Inter (ep pn) s)
+    Final s'' = s_mx ep' (Inter sm s')
+    s_res = (\v -> if (v `elem` (map fst dv)) then s v else s'' v)
+s_mx ep (Inter (Call pn) s) = Final s'
+  where
+      (p_sm, p_ev) = run ep pn
+      rem = upd_pm p_ev [(pn, p_sm)]
+      Final s' = s_mx rem (Inter p_sm s)
+
+--s_fac'' = deriv_seq_m envp (s_mx envp (Inter factorial s_init))
+
+deriv_seq_m e (Inter ss s) = (Inter ss s) : (deriv_seq_m e (s_mx e (Inter ss s)))
+deriv_seq_m e (Final s) = [Final s]
+
+s_mrun sm s = s' where
+    Final s' = last (deriv_seq_m envp (Inter sm s))
+
+s_mixed :: Stm -> State -> State
+s_mixed sm s = s_mrun sm s
 --
 --s_dn ep (Block dv dp sm) s  = s_dn (upd_pd (dp, ep)) sm (update_dynamic dv s)
 --s_dn ep (Call pn) s = s_dn ep (ep pn) s
