@@ -7,6 +7,7 @@ import qualified Text.Megaparsec (parse)
 import Text.Megaparsec.String
 import Text.Megaparsec.Expr
 import Data.List (intercalate)
+import Debug.Trace
 
 type Num = Integer
 type Var = String
@@ -331,10 +332,7 @@ s_fac' = deriv_seq_d envp (s_dn envp (Inter factorial s_init))
 deriv_seq_d e (Inter ss s) = (Inter ss s) : (deriv_seq_d e (s_dn e (Inter ss s)))
 deriv_seq_d e (Final s) = [Final s]
 
---run_d = case s_dn envp (Inter factorial s_init) of
---          Final st -> st
---          otherwise -> ser
-
+run_d sm = show_seq ["x", "y"] (deriv_seq_d envp (Inter sm s_init))
 
 --s_fac' = s_sos factorial s_init
 
@@ -348,9 +346,6 @@ s_dynamic sm s = s_drun sm s
 ser :: State
 ser "x" = 500
 ser s   = 0
-
---
---data Config = Inter Stm State | Final State
 
 sos_stm :: Config -> Config
 sos_stm (Inter (Ass x a) s) = Final (update s x (a_val a s)) where
@@ -415,16 +410,27 @@ s_mx ep (Inter (Call pn) s) = Final s'
       rem = upd_pm p_ev [(pn, p_sm)]
       Final s' = s_mx rem (Inter p_sm s)
 
---s_fac'' = deriv_seq_m envp (s_mx envp (Inter factorial s_init))
+envp_m :: EnvP_m
+envp_m = EnvP_m (\pname -> (Skip, envp_m))
+
+--default_envp_m :: EnvP_m
+--default_envp_m = ENVP (\pname -> (Skip, default_envp_m))
+--
 
 deriv_seq_m e (Inter ss s) = (Inter ss s) : (deriv_seq_m e (s_mx e (Inter ss s)))
 deriv_seq_m e (Final s) = [Final s]
 
+run_m sm = show_seq ["x", "y"] (deriv_seq_m envp_m (Inter sm s_init))
+
 s_mrun sm s = s' where
-    Final s' = last (deriv_seq_m envp (Inter sm s))
+    Final s' = last (deriv_seq_m envp_m (Inter sm s))
+
+--default_envp_m :: EnvP_m
+--default_envp_m = (\pname -> (Skip, default_envp_m))
 
 s_mixed :: Stm -> State -> State
 s_mixed sm s = s_mrun sm s
+--
 --
 --s_dn ep (Block dv dp sm) s  = s_dn (upd_pd (dp, ep)) sm (update_dynamic dv s)
 --s_dn ep (Call pn) s = s_dn ep (ep pn) s
@@ -433,11 +439,12 @@ s_mixed sm s = s_mrun sm s
 --s_mixed sm s = s_mxd envp sm s
 
 --s_mxd e sm s = s_mx (EnvP_m(e)) sm s
+--
+--
 
---envps :: EnvP_m
---envps x = (EnvP_m(envp x))
+scopeProg = Block [("x",N 0)] [("p",Ass "x" (Mult (V "x") (N 2))),("q",Call "p")] (Block [("x",N 5)] [("p",Ass "x" (Add (V "x") (N 1)))] (Comp (Call "q") (Ass "y" (V "x"))))
 
-
+scopeString = "//scope test (p.53)\nbegin\nvar x:=0;\nproc p is x:=x*2;\nproc q is call p;\nbegin\nvar x:=5;\nproc p is x:=x+1;\n(call q;\ny:=x)\nend\nend"
 
 updGen :: Eq a => (a -> b) -> b -> a -> (a -> b)
 updGen en s p = (\x -> if p == x then s else en x)
