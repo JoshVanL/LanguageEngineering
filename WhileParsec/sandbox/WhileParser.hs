@@ -45,8 +45,8 @@ data Stm = Skip
 
 statement :: Parser Stm
 statement =  try (parens statement)
-         <|> try (many (comments) *> compStm)
-         <|> try (many (comments) *> stm)
+         <|> try (many (comments) *> whitespace *> compStm <* whitespace)
+         <|> try (many (comments) *> whitespace *> stm <* whitespace)
 
 comments :: Parser ()
 comments =  (tok "/*" >> manyTill anyChar (tok "*/") >> whitespace >> return ())
@@ -57,38 +57,52 @@ compStm = Comp <$> stm <* tok ";" <* whitespace <*> statement
 
 stm :: Parser Stm
 stm =  try (Skip  <$  tok "skip")
-   <|> try (Ass   <$> var <* tok ":="   <*> aexp)
+   <|> try (Ass   <$> var <* whitespace <* tok ":=" <* whitespace <*> aexp)
    <|> try (If    <$  tok "if" <*> bexp <* tok "then" <*> statement <* tok "else" <*> statement)
    <|> try (While <$  tok "while" <*>  bexp <* tok "do"   <*> statement)
    <|> try (Call  <$  tok "call" <*> pname)
-   <|> try (Block <$  tok "begin" <*> (many decv) <*> (many decp) <*> statement <* tok "end")
+   <|> try (Block <$  tok "begin" <*> (many decv) <*> (many decp) <*> statement <* whitespace <* tok "end")
 
 pname :: Parser Pname
-pname = some(oneOf (['A' .. 'Z'] ++ ['a' .. 'z'])) <* whitespace
+pname = 
+  do 
+      whitespace
+      f <- oneOf(['A' .. 'Z'] ++ ['a' .. 'z'])
+      m <-  many(oneOf(['A' .. 'Z'] ++ ['a' .. 'z'] ++ ['0' .. '9']))
+      whitespace
+      return $ ([f] ++ m)
 
 decv :: Parser (Var,Aexp)
 decv = 
-  do tok "var"
+  do whitespace
+     tok "var"
+     whitespace
      var <- var
+     whitespace
      tok ":="
+     whitespace
      expr <- aterm
      tok ";"
+     whitespace
      return $ (var, expr)
 
 decp :: Parser (Pname, Stm)
 decp = 
-  do tok "proc" 
+  do whitespace
+     tok "proc" 
+     whitespace
      pro <- pname
+     whitespace
      tok "is"
      s <- stm
      tok ";"
      return $ (pro, s)
 
 aexp :: Parser Aexp
-aexp =  try (Mult <$> aterm <* tok "*" <*> aterm)
-    <|> try (Add  <$> aterm <* tok "+" <*> aterm)
-    <|> try (Sub  <$> aterm <* tok "-" <*> aterm)
-    <|> aterm
+aexp =  try (Mult <$> aterm <* whitespace <* tok "*" <* whitespace <*> aterm)
+    <|> try (Add  <$> aterm <* whitespace <* tok "+" <* whitespace <*> aterm)
+    <|> try (Sub  <$> aterm <* whitespace <* tok "-" <* whitespace <*> aterm)
+    <|> aterm                                         
 
 aterm :: Parser Aexp
 aterm =  parens aexp
@@ -96,9 +110,9 @@ aterm =  parens aexp
      <|> N <$> number
 
 bexp :: Parser Bexp
-bexp =  try (And <$> bterm <* tok "&" <*> bterm)
-    <|> try (Eq  <$> aterm <* tok "=" <*> aterm)
-    <|> try (Le  <$> aterm <* tok "<=" <*> aterm)
+bexp =  try (And <$> bterm <* tok "&" <* whitespace <*> bterm)
+    <|> try (Eq  <$> aterm <* tok "=" <* whitespace <*> aterm)
+    <|> try (Le  <$> aterm <* tok "<=" <* whitespace <*> aterm)
     <|> try (Neg <$ tok "!" <*> bexp)
     <|> bterm
 
@@ -133,7 +147,7 @@ cr :: Parser [Char]
 cr = many (oneOf "\r\n")
 
 tok :: String -> Parser String
-tok t = try (string t <* whitespace)
+tok t = try (whitespace *> string t <* whitespace)
 
 parse :: String -> Stm
 parse str =
@@ -310,7 +324,31 @@ s_dn ep (Inter (If b ss1 ss2) s) = case b_val b s of
                                      False -> Inter ss2 s
 s_dn ep (Inter (While b ss) s) = Inter (If b (Comp ss (While b ss)) Skip) s
 s_dn ep (Inter (Block dv dp sm) s)  = s_dn (upd_pd (dp, ep)) (Inter sm (update_dynamic dv s))
-s_dn ep (Inter (Call pn) s) = s_dn ep (Inter (ep pn) s)
+s_dn ep (Inter (Call pn) s) = Final s'
+  where 
+      p_sm = ep pn
+      Final s' = s_dn ep (Inter p_sm s)
+    
+type DecV = [(Var,Aexp)]
+type DecP = [(Pname,Stm)]
+
+data Config = Inter Stm State | Final State
+
+type Loc = Num
+type EnvV = Var -> Loc
+
+type EnvP = Pname -> Stm
+--type EnvPs = Pname -> (Stm, EnvP_s)
+--data EnvP_s = EnvP 
+--            | EnvPs
+newtype EnvP_m = EnvP_m {run :: Pname -> (Stm, EnvP_m)}
+--s_dn ep (Inter (ep pn) s)
+
+--s_mx ep (Inter (Call pn) s) = Final s'
+--  where
+--      (p_sm, p_ev) = run ep pn
+--      rem = upd_pm p_ev [(pn, p_sm)]
+--      Final s' = s_mx rem (Inter p_sm s)
 
 updateEnvp :: EnvP -> Stm -> Pname -> EnvP
 updateEnvp e s p y = if(p == y)
@@ -334,9 +372,6 @@ deriv_seq_d e (Final s) = [Final s]
 
 run_d sm = show_seq ["x", "y"] (deriv_seq_d envp (Inter sm s_init))
 
---s_fac' = s_sos factorial s_init
-
---s_dynamic :: Stm -> State -> State
 s_drun sm s = s' where
     Final s' = last (deriv_seq_d envp (Inter sm s))
 
@@ -465,19 +500,6 @@ upd_pm  envP decP = foldl upd_pm' envP decP
         _ | pname' == pname -> (stm, envP)
           | otherwise       -> run envP pname')
 
-type DecV = [(Var,Aexp)]
-type DecP = [(Pname,Stm)]
-
-data Config = Inter Stm State | Final State
-
-type Loc = Num
-type EnvV = Var -> Loc
-
-type EnvP = Pname -> Stm
---type EnvPs = Pname -> (Stm, EnvP_s)
---data EnvP_s = EnvP 
---            | EnvPs
-newtype EnvP_m = EnvP_m {run :: Pname -> (Stm, EnvP_m)}
 --s_mixed :: Stm -> State -> State
 --
 
