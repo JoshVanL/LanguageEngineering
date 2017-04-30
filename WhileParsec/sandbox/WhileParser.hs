@@ -257,8 +257,8 @@ ns_stm (Inter (While b ss) s )  = case b_val b s of
 s_ns ss s = s' where
   Final s' = ns_stm (Inter ss s)
 
-s_init "x" = 4
-s_init t   = 0
+s_init :: State
+s_init _ = 0
 
 
 factorial = Comp (Ass "y" (N 1)) (While (Neg (Eq (V "x") (N 1))) (Comp (Ass "y" (Mult (V "y") (V "x"))) (Ass "x" (Sub (V "x") (N 1)))))
@@ -288,9 +288,8 @@ new :: Loc -> Loc
 new l = l + 1
 
 envp :: EnvP
-envp "p" = Skip
-envp "q" = Skip
-envp var = Skip
+envp "fac1" = Skip
+envp _ = Skip
 
 
 --update_dynamic' :: DecV -> Config -> Config
@@ -314,21 +313,25 @@ s_dn ep (Inter (Ass x a) s) = Final (update s x (a_val a s)) where
                        True      -> v
                        otherwise -> s y
 s_dn ep (Inter Skip s) = Final s
-s_dn ep (Inter (Comp ss1 ss2) s)  = case is_Final(s_dn ep (Inter ss1 s)) of
-                                      True -> Inter ss2 s' where
-                                          Final s' = s_dn ep (Inter ss1 s)
-                                      otherwise -> Inter (Comp ss1' ss2) s' where
-                                          Inter ss1' s' = s_dn ep (Inter ss1 s)
+s_dn ep (Inter (Comp ss1 ss2) s)  = Final s'' where
+    Final s'  = s_dn ep (Inter ss1 s)
+    Final s'' = s_dn ep(Inter ss2 s')
 s_dn ep (Inter (If b ss1 ss2) s) = case b_val b s of
                                      True  -> Inter ss1 s
                                      False -> Inter ss2 s
-s_dn ep (Inter (While b ss) s) = Inter (If b (Comp ss (While b ss)) Skip) s
-s_dn ep (Inter (Block dv dp sm) s)  = s_dn (upd_pd (dp, ep)) (Inter sm (update_dynamic dv s))
+s_dn ep (Inter (While b ss) s) = Final s'
+    where
+      Final s' = s_dn ep (Inter (If b (Comp ss (While b ss)) Skip) s)
+s_dn ep (Inter (Block dv dp sm) s)  = Final s'
+  where
+      Final s' = s_dn (upd_pd (dp, ep)) (Inter sm (update_dynamic dv s))
 s_dn ep (Inter (Call pn) s) = Final s'
-  where 
+  where
       p_sm = ep pn
       Final s' = s_dn ep (Inter p_sm s)
     
+
+
 type DecV = [(Var,Aexp)]
 type DecP = [(Pname,Stm)]
 
