@@ -254,6 +254,7 @@ ns_stm (Inter (While b ss) s )  = case b_val b s of
                                         Final s'  = ns_stm (Inter ss s)
                                         Final s'' = ns_stm (Inter (While b ss) s')
                                     otherwise -> Final s
+
 s_ns ss s = s' where
   Final s' = ns_stm (Inter ss s)
 
@@ -307,30 +308,55 @@ envp _ = Skip
 --s_dn ep (Call pn) s = s_dn ep (ep pn) s
 --
 
-s_dn :: EnvP  -> Config -> Config
-s_dn ep (Inter (Ass x a) s) = Final (update s x (a_val a s)) where
-    update s x v y = case x == y of
-                       True      -> v
-                       otherwise -> s y
-s_dn ep (Inter Skip s) = Final s
-s_dn ep (Inter (Comp ss1 ss2) s)  = Final s'' where
-    Final s'  = s_dn ep (Inter ss1 s)
-    Final s'' = s_dn ep(Inter ss2 s')
-s_dn ep (Inter (If b ss1 ss2) s) = case b_val b s of
-                                     True  -> Inter ss1 s
-                                     False -> Inter ss2 s
-s_dn ep (Inter (While b ss) s) = Final s'
-    where
-      Final s' = s_dn ep (Inter (If b (Comp ss (While b ss)) Skip) s)
-s_dn ep (Inter (Block dv dp sm) s)  = Final s'
-  where
-      Final s' = s_dn (upd_pd (dp, ep)) (Inter sm (update_dynamic dv s))
-s_dn ep (Inter (Call pn) s) = Final s'
-  where
-      p_sm = ep pn
-      Final s' = s_dn ep (Inter p_sm s)
+--s_dn :: EnvP  -> Config -> Config
+--s_dn ep (Inter (Ass x a) s) = Final (update s x (a_val a s)) where
+--        update s x v y = case x == y of
+--                           True      -> v
+--                           otherwise -> s y
+--s_dn ep (Inter Skip s) = Final s
+--s_dn ep (Inter (Comp ss1 ss2) s)  = Final s'' where
+--    Final s'  = s_dn ep (Inter ss1 s)
+--    Final s'' = s_dn ep(Inter ss2 s')
+--s_dn ep (Inter (If b ss1 ss2) s) = Final s' where
+--    Final s' = case (b_val b s) of
+--                 True  -> Inter ss1 s
+--                 False -> Inter ss2 s
+--s_dn ep (Inter (While b ss) s) = Final s'
+--    where
+--      Final s' = s_dn ep (Inter (If b (Comp ss (While b ss)) Skip) s)
+--s_dn ep (Inter (Block dv dp sm) s)  = Final s'
+--  where
+--      Final s' = s_dn (upd_pd (dp, ep)) (Inter sm (update_dynamic dv s))
+--s_dn ep (Inter (Call pn) s) = Final s'
+--  where
+--      p_sm = ep pn
+--      Final s' = s_dn ep (Inter p_sm s)
     
 
+ns_dy :: EnvP -> Config -> Config
+ns_dy ep (Inter (Ass x a) s) = Final (update s (a_val a s) x)
+ns_dy ep (Inter (Skip) s) = Final s
+ns_dy ep (Inter (Comp ss1 ss2) s) = Final s''
+  where
+      Final s'  = ns_dy ep (Inter ss1 s)
+      Final s'' = ns_dy ep (Inter ss2 s')
+ns_dy ep (Inter (If b ss1 ss2) s) = case b_val b s of
+                                    True      -> Final s' where
+                                        Final s' = ns_dy ep (Inter ss1 s)
+                                    otherwise -> Final s' where
+                                        Final s' = ns_dy ep (Inter ss2 s)
+ns_dy ep (Inter (While b ss) s )  = case b_val b s of
+                                    True      -> Final s'' where
+                                        Final s'  = ns_dy ep (Inter ss s)
+                                        Final s'' = ns_dy ep (Inter (While b ss) s')
+                                    otherwise -> Final s
+ns_dy ep (Inter (Block dv dp sm) s)  = Final s'
+  where
+      Final s' = ns_dy (upd_pd (dp, ep)) (Inter sm (update_dynamic dv s))
+ns_dy ep (Inter (Call pn) s) = Final s'
+  where
+      p_sm = ep pn
+      Final s' = ns_dy ep (Inter p_sm s)
 
 type DecV = [(Var,Aexp)]
 type DecP = [(Pname,Stm)]
@@ -368,12 +394,12 @@ update_dynamic :: DecV -> State -> State
 update_dynamic ((v,a):ds) s = update_dynamic ds (update s (a_val a s) v)
 update_dynamic _ s = s
 
-s_fac' = deriv_seq_d envp (s_dn envp (Inter factorial s_init))
+--s_fac' = deriv_seq_d envp (ns_dy envp (Inter factorial s_init))
 
-deriv_seq_d e (Inter ss s) = (Inter ss s) : (deriv_seq_d e (s_dn e (Inter ss s)))
+deriv_seq_d e (Inter ss s) = (Inter ss s) : (deriv_seq_d e (ns_dy e (Inter ss s)))
 deriv_seq_d e (Final s) = [Final s]
 
-run_d sm = show_seq ["x", "y"] (deriv_seq_d envp (Inter sm s_init))
+--run_d sm = show_seq ["x", "y"] (deriv_seq_d envp (Inter sm s_init))
 
 s_drun sm s = s' where
     Final s' = last (deriv_seq_d envp (Inter sm s))
@@ -459,6 +485,7 @@ deriv_seq_m e (Inter ss s) = (Inter ss s) : (deriv_seq_m e (s_mx e (Inter ss s))
 deriv_seq_m e (Final s) = [Final s]
 
 run_m sm = show_seq ["x", "y"] (deriv_seq_m envp_m (Inter sm s_init))
+run_d sm = show_seq ["x", "y"] (deriv_seq_d envp (Inter sm s_init))
 
 s_mrun sm s = s' where
     Final s' = last (deriv_seq_m envp_m (Inter sm s))
