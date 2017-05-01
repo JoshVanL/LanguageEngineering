@@ -162,6 +162,8 @@ parseFile file =
        Left e  -> print e >> fail "parse error"
        Right r -> return r
 
+-------------------------------------------------------------------------------------
+
 n_val :: Num -> Z
 n_val x = x 
 
@@ -212,12 +214,6 @@ update s v x y
 s' :: State
 s' "x" = n_val 5
 
-s :: State
-s "x" = n_val 5
-s "y" = n_val 9
-s "z" = n_val 5
-s var = n_val 0
-
 p :: Stm
 p = Comp (Ass "y" (N 1)) (While (Neg (Eq (V "x") (N 1))) (Comp (Ass "y" (Mult (V "y") (V "x"))) (Ass "x" (Sub (V "x") (N 1)))))
 
@@ -236,6 +232,14 @@ s_ds (Comp sm1 sm2) s = (s_ds sm2 (s_ds sm1 s))
 s_ds (If b sm1 sm2) s = cond (b_val b, s_ds sm1, s_ds sm2) s
 s_ds (While b sm) s = fix ff s where
     ff g = cond (b_val b, g . s_ds sm, id)
+
+------------------------------------------------------------------------------------
+
+s_init :: State
+s_init "x" = 0
+s_init "y" = 0
+s_init "z" = 0
+s_init _ = 0
 
 ns_stm :: Config -> Config
 ns_stm (Inter (Ass x a) s) = Final (update s (a_val a s) x)
@@ -258,15 +262,27 @@ ns_stm (Inter (While b ss) s )  = case b_val b s of
 s_ns ss s = s' where
   Final s' = ns_stm (Inter ss s)
 
-s_init :: State
-s_init _ = 0
+------------------------------------------------------------------------------------
 
-
-factorial = Comp (Ass "y" (N 1)) (While (Neg (Eq (V "x") (N 1))) (Comp (Ass "y" (Mult (V "y") (V "x"))) (Ass "x" (Sub (V "x") (N 1)))))
 
 is_Final (Inter ss s) = False
 is_Final (Final s)    = True
 
+sos_stm :: Config -> Config
+sos_stm (Inter (Ass x a) s) = Final (update s x (a_val a s)) where
+    update s x v y = case x == y of
+                       True      -> v
+                       otherwise -> s y
+sos_stm (Inter Skip s) = Final s
+sos_stm (Inter (Comp ss1 ss2) s)  = case is_Final(sos_stm (Inter ss1 s)) of
+                                      True -> Inter ss2 s' where
+                                          Final s' = sos_stm (Inter ss1 s)
+                                      otherwise -> Inter (Comp ss1' ss2) s' where
+                                          Inter ss1' s' = sos_stm (Inter ss1 s)
+sos_stm (Inter (If b ss1 ss2) s) = case b_val b s of
+                                     True  -> Inter ss1 s
+                                     False -> Inter ss2 s
+sos_stm (Inter (While b ss) s) = Inter (If b (Comp ss (While b ss)) Skip) s
 
 deriv_seq (Inter ss s) = (Inter ss s) : (deriv_seq (sos_stm (Inter ss s)))
 deriv_seq (Final s) = [Final s]
@@ -274,64 +290,15 @@ deriv_seq (Final s) = [Final s]
 s_sos ss s = s' where
     Final s' = last (deriv_seq (Inter ss s))
 
-fac_seq = deriv_seq (Inter factorial s_init)
+--------------------------------------------------------------------------------------
 
 show_seq fv l = putStrLn (concat (map show_config l)) where
     show_config (Final s) = "\nfinal state:\n" ++ show (map (show_val s) fv)
-    --show_config (Inter ss s) = show ss ++ "\n" ++ show (map (show_val s) fv)
     show_config (Inter ss s) = "\n" ++ show (map (show_val s) fv)
     show_val s x = " s(" ++x++")="++ show (s x)
-    --show_val s x = " s(" ++x++")="++ show (s x)
---map (filter (/='"')) 
 
 
-new :: Loc -> Loc
-new l = l + 1
-
-envp :: EnvP
-envp "fac1" = Skip
-envp _ = Skip
-
-
---update_dynamic' :: DecV -> Config -> Config
---update_dynamic' ((v,a):ds) s = update_dynamic ds (update s (a_val a s) v)
---update_dynamic' _ s = s
-
---s_dn :: EnvP -> Stm -> State -> State
---s_dn ep (Ass var ax) s = update s (a_val ax s) var
---s_dn ep Skip s = s
---s_dn ep (Comp sm1 sm2) s = (s_dn ep sm2 (s_dn ep sm1 s))
---s_dn ep (If b sm1 sm2) s = cond (b_val b, s_dn ep sm1, s_dn ep sm2) s
---s_dn ep (While b sm) s = fix ff s where
---    ff g = cond (b_val b, g . s_dn ep sm, id)
---s_dn ep (Block dv dp sm) s  = s_dn (upd_pd (dp, ep)) sm (update_dynamic dv s)
---s_dn ep (Call pn) s = s_dn ep (ep pn) s
---
-
---s_dn :: EnvP  -> Config -> Config
---s_dn ep (Inter (Ass x a) s) = Final (update s x (a_val a s)) where
---        update s x v y = case x == y of
---                           True      -> v
---                           otherwise -> s y
---s_dn ep (Inter Skip s) = Final s
---s_dn ep (Inter (Comp ss1 ss2) s)  = Final s'' where
---    Final s'  = s_dn ep (Inter ss1 s)
---    Final s'' = s_dn ep(Inter ss2 s')
---s_dn ep (Inter (If b ss1 ss2) s) = Final s' where
---    Final s' = case (b_val b s) of
---                 True  -> Inter ss1 s
---                 False -> Inter ss2 s
---s_dn ep (Inter (While b ss) s) = Final s'
---    where
---      Final s' = s_dn ep (Inter (If b (Comp ss (While b ss)) Skip) s)
---s_dn ep (Inter (Block dv dp sm) s)  = Final s'
---  where
---      Final s' = s_dn (upd_pd (dp, ep)) (Inter sm (update_dynamic dv s))
---s_dn ep (Inter (Call pn) s) = Final s'
---  where
---      p_sm = ep pn
---      Final s' = s_dn ep (Inter p_sm s)
-    
+-------------------------------------------------------------------------------------
 
 ns_dy :: EnvP -> Config -> Config
 ns_dy ep (Inter (Ass x a) s) = Final (update s (a_val a s) x)
@@ -358,26 +325,6 @@ ns_dy ep (Inter (Call pn) s) = Final s'
       p_sm = ep pn
       Final s' = ns_dy ep (Inter p_sm s)
 
-type DecV = [(Var,Aexp)]
-type DecP = [(Pname,Stm)]
-
-data Config = Inter Stm State | Final State
-
-type Loc = Num
-type EnvV = Var -> Loc
-
-type EnvP = Pname -> Stm
---type EnvPs = Pname -> (Stm, EnvP_s)
---data EnvP_s = EnvP 
---            | EnvPs
-newtype EnvP_m = EnvP_m {run :: Pname -> (Stm, EnvP_m)}
---s_dn ep (Inter (ep pn) s)
-
---s_mx ep (Inter (Call pn) s) = Final s'
---  where
---      (p_sm, p_ev) = run ep pn
---      rem = upd_pm p_ev [(pn, p_sm)]
---      Final s' = s_mx rem (Inter p_sm s)
 
 updateEnvp :: EnvP -> Stm -> Pname -> EnvP
 updateEnvp e s p y = if(p == y)
@@ -394,176 +341,185 @@ update_dynamic :: DecV -> State -> State
 update_dynamic ((v,a):ds) s = update_dynamic ds (update s (a_val a s) v)
 update_dynamic _ s = s
 
---s_fac' = deriv_seq_d envp (ns_dy envp (Inter factorial s_init))
 
-deriv_seq_d e (Inter ss s) = (Inter ss s) : (deriv_seq_d e (ns_dy e (Inter ss s)))
-deriv_seq_d e (Final s) = [Final s]
 
---run_d sm = show_seq ["x", "y"] (deriv_seq_d envp (Inter sm s_init))
+--------------------------------------------------------------------------------------
 
-s_drun sm s = s' where
-    Final s' = last (deriv_seq_d envp (Inter sm s))
 
-s_dynamic :: Stm -> State -> State
-s_dynamic sm s = s_drun sm s
-
-ser :: State
-ser "x" = 500
-ser s   = 0
-
-sos_stm :: Config -> Config
-sos_stm (Inter (Ass x a) s) = Final (update s x (a_val a s)) where
-    update s x v y = case x == y of
-                       True      -> v
-                       otherwise -> s y
-sos_stm (Inter Skip s) = Final s
-sos_stm (Inter (Comp ss1 ss2) s)  = case is_Final(sos_stm (Inter ss1 s)) of
-                                      True -> Inter ss2 s' where
-                                          Final s' = sos_stm (Inter ss1 s)
-                                      otherwise -> Inter (Comp ss1' ss2) s' where
-                                          Inter ss1' s' = sos_stm (Inter ss1 s)
-sos_stm (Inter (If b ss1 ss2) s) = case b_val b s of
-                                     True  -> Inter ss1 s
-                                     False -> Inter ss2 s
-sos_stm (Inter (While b ss) s) = Inter (If b (Comp ss (While b ss)) Skip) s
--------------------
-
---s_mx :: EnvP_m -> Config -> Config
---s_mx ep (Inter (Ass var ax) s) = Final (update s (a_val ax s) var
---s_mx ep Skip s = s
---s_mx ep (Comp sm1 sm2) s = (s_mx ep sm2 (s_mx ep sm1 s))
---s_mx ep (If b sm1 sm2) s = cond (b_val b, s_mx ep sm1, s_mx ep sm2) s
---s_mx ep (While b sm) s = fix ff s where
---    ff g = cond (b_val b, g . s_mx ep sm, id)
-----s_mx ep (Block dv dp sm) s  = s_mx (upd_pm ep dp) sm (update_s s dv)
---s_mx ep (Block dv dp sm) s  = s_restored
---  where
---      s'  = update_s s dv
---      ep' = upd_pm ep dp
---      s'' = s_mx ep' sm s'
---      s_restored = (\v -> if (v `elem` (map fst dv)) then s v else s'' v)
---s_mx ep (Call pn) s = s'
---  where
---      (p_sm, p_ev) = run ep pn
---      rem = upd_pm p_ev [(pn, p_sm)]
---      s' = s_mx rem p_sm s
-
-s_mx :: EnvP_m  -> Config -> Config
-s_mx ep (Inter (Ass x a) s) = Final (update s x (a_val a s)) where
-    update s x v y = case x == y of
-                       True      -> v
-                       otherwise -> s y
-s_mx ep (Inter Skip s) = Final s
-s_mx ep (Inter (Comp ss1 ss2) s)  = case is_Final(s_mx ep (Inter ss1 s)) of
-                                      True -> Inter ss2 s' where
-                                          Final s' = s_mx ep (Inter ss1 s)
-                                      otherwise -> Inter (Comp ss1' ss2) s' where
-                                          Inter ss1' s' = s_mx ep (Inter ss1 s)
-s_mx ep (Inter (If b ss1 ss2) s) = case b_val b s of
-                                     True  -> Inter ss1 s
-                                     False -> Inter ss2 s
-s_mx ep (Inter (While b ss) s) = Inter (If b (Comp ss (While b ss)) Skip) s
-s_mx ep (Inter (Block dv dp sm) s)  = Final s_res where
+ns_mx :: EnvP_m  -> Config -> Config
+ns_mx ep (Inter (Ass x a) s) = Final (up s x (a_val a s)) where
+    up s x v y = case (x == y) of
+                   True -> v
+                   otherwise -> s y
+ns_mx ep (Inter Skip s) = Final s
+ns_mx ep (Inter (Comp ss1 ss2) s)  = Final s''
+  where
+      Final s' = ns_mx ep (Inter ss1 s)
+      Final s'' = ns_mx ep (Inter ss2 s')
+ns_mx ep (Inter (If b ss1 ss2) s) = case b_val b s of
+                                      True  -> Final s' where
+                                          Final s' = ns_mx ep (Inter ss1 s)
+                                      otherwise -> Final s' where
+                                          Final s' = ns_mx ep (Inter ss2 s)
+ns_mx ep (Inter (While b ss) s )  = case b_val b s of
+                                      True      -> Final s'' where
+                                        Final s'  = ns_mx ep (Inter ss s)
+                                        Final s'' = ns_mx ep (Inter (While b ss) s')
+                                      otherwise -> Final s
+ns_mx ep (Inter (Block dv dp sm) s)  = Final s_res where
     s' = update_s s dv
     ep' = upd_pm ep dp
-    Final s'' = s_mx ep' (Inter sm s')
-    s_res = (\v -> if (v `elem` (map fst dv)) then s v else s'' v)
-s_mx ep (Inter (Call pn) s) = Final s'
+    Final s'' = ns_mx ep' (Inter sm s')
+    s_res = (\v -> case (v `elem` (map fst dv)) of
+                     True -> s v
+                     otherwise ->  s'' v)
+ns_mx ep (Inter (Call pn) s) = Final s'
   where
-      (p_sm, p_ev) = run ep pn
+      (p_sm, p_ev) = runM ep pn
       rem = upd_pm p_ev [(pn, p_sm)]
-      Final s' = s_mx rem (Inter p_sm s)
+      Final s' = ns_mx rem (Inter p_sm s)
+
 
 envp_m :: EnvP_m
 envp_m = EnvP_m (\pname -> (Skip, envp_m))
 
---default_envp_m :: EnvP_m
---default_envp_m = ENVP (\pname -> (Skip, default_envp_m))
---
 
-deriv_seq_m e (Inter ss s) = (Inter ss s) : (deriv_seq_m e (s_mx e (Inter ss s)))
+upd_pm :: EnvP_m -> DecP -> EnvP_m
+upd_pm  ep dp = foldl upd_pm' ep dp
+  where
+      upd_pm' :: EnvP_m -> (Pname, Stm) -> EnvP_m
+      upd_pm' ep (pn, sm) = EnvP_m(\pn' -> case(pn' == pn) of
+                                             True      -> (sm, ep)
+                                             otherwise -> runM ep pn')
+
+update_s :: State -> DecV -> State
+update_s s dv = foldl update_s' s dv
+  where
+      update_s' :: State -> (Var, Aexp) -> State
+      update_s' s (v, ax) = \v' -> case (v == v') of
+                                           True -> a_val ax s
+                                           otherwise -> s v'
+
+--------------------------------------------------------------------------------------
+    
+ns_st :: EnvV -> EnvP_s  -> Config -> Config
+ns_st ev ep (Inter (Ass x a) s) = Final (up s x (a_val a s)) where
+    up s x v y = case (x == y) of
+                   True -> v
+                   otherwise -> s y
+ns_st ev ep (Inter Skip s) = Final s
+ns_st ev ep (Inter (Comp ss1 ss2) s)  = Final s''
+  where
+      Final s' = ns_st ev ep (Inter ss1 s)
+      Final s'' = ns_st ev ep (Inter ss2 s')
+ns_st ev ep (Inter (If b ss1 ss2) s) = case b_val b s of
+                                      True  -> Final s' where
+                                          Final s' = ns_st ev ep (Inter ss1 s)
+                                      otherwise -> Final s' where
+                                          Final s' = ns_st ev ep (Inter ss2 s)
+ns_st ev ep (Inter (While b ss) s )  = case b_val b s of
+                                      True      -> Final s'' where
+                                        Final s'  = ns_st ev ep (Inter ss s)
+                                        Final s'' = ns_st ev ep (Inter (While b ss) s')
+                                      otherwise -> Final s
+ns_st ev ep (Inter (Block dv dp sm) s)  = Final s_res where
+    s' = update_s s dv
+    ep' = upd_ps ep dp ev
+    Final s'' = ns_st ev ep' (Inter sm s')
+    s_res = (\v -> case (v `elem` (map fst dv)) of
+                     True -> s v
+                     otherwise ->  s'' v)
+ns_st ev ep (Inter (Call pn) s) = Final s'
+  where
+      (p_sm, p_ev, p_ep) = runS ep pn
+      rem = upd_ps p_ep [(pn, p_sm)] p_ev
+      Final s' = ns_st p_ev rem (Inter p_sm s)
+
+envp_s :: EnvP_s
+envp_s = EnvP_s (\pname -> (Skip, envv, envp_s))
+
+upd_ps :: EnvP_s -> DecP -> EnvV -> EnvP_s
+upd_ps  ep dp ev = foldl upd_ps' ep dp
+  where
+      upd_ps' :: EnvP_s -> (Pname, Stm) -> EnvP_s
+      upd_ps' ep (pn, sm) = EnvP_s(\pn' -> case(pn == pn) of
+                                             True      -> (sm, ev, ep)
+                                             otherwise -> runS ep pn')
+
+
+---------------------------------------------------------------------------------------
+
+deriv_seq_d e (Inter ss s) = (Inter ss s) : (deriv_seq_d e (ns_dy e (Inter ss s)))
+deriv_seq_d e (Final s) = [Final s]
+
+run_d sm = show_seq ["x", "y"] (deriv_seq_d envp (Inter sm s_init))
+
+s_drun sm s = s' where
+    Final s' = last (deriv_seq_d envp (Inter sm s))
+
+-----
+
+deriv_seq_m e (Inter ss s) = (Inter ss s) : (deriv_seq_m e (ns_mx e (Inter ss s)))
 deriv_seq_m e (Final s) = [Final s]
 
 run_m sm = show_seq ["x", "y"] (deriv_seq_m envp_m (Inter sm s_init))
-run_d sm = show_seq ["x", "y"] (deriv_seq_d envp (Inter sm s_init))
 
 s_mrun sm s = s' where
     Final s' = last (deriv_seq_m envp_m (Inter sm s))
 
---default_envp_m :: EnvP_m
---default_envp_m = (\pname -> (Skip, default_envp_m))
+-----
+
+deriv_seq_s v e (Inter ss s) = (Inter ss s) : (deriv_seq_s v e (ns_st v e (Inter ss s)))
+deriv_seq_s v e (Final s) = [Final s]
+
+run_s sm = show_seq ["x", "y"] (deriv_seq_s envv envp_s (Inter sm s_init))
+
+s_srun sm s = s' where
+    Final s' = last (deriv_seq_s envv envp_s (Inter sm s))
+
+
+scopeProg = parse "//scope test (p.53)\nbegin\nvar x:=0;\nproc p is x:=x*2;\nproc q is call p;\nbegin\nvar x:=5;\nproc p is x:=x+1;\n(call q;\ny:=x)\nend\nend"
+
+
+---------------------------------------------------------------------------------------
+
+type DecV = [(Var,Aexp)]
+type DecP = [(Pname,Stm)]
+
+data Config = Inter Stm State | Final State
+
+type Loc = Num
+type EnvV = Var -> Loc
+
+type EnvP = Pname -> Stm
+
+newtype EnvP_m = EnvP_m {runM :: Pname -> (Stm, EnvP_m)}
+newtype EnvP_s = EnvP_s {runS :: Pname -> (Stm, EnvV, EnvP_s)}
+
+new :: Loc -> Loc
+new l = l + 1
+
+s :: State
+s "x" = 0
+s "y" = 0
+s "z" = 0
+s var = 0
+
+envp :: EnvP
+envp "p" = Skip
+envp _ = Skip
+
+envv :: EnvV
+envv "p" = 1
+envv _ = 0
+
+
+s_dynamic :: Stm -> State -> State
+s_dynamic sm s = s_drun sm s
 
 s_mixed :: Stm -> State -> State
 s_mixed sm s = s_mrun sm s
---
---
---s_dn ep (Block dv dp sm) s  = s_dn (upd_pd (dp, ep)) sm (update_dynamic dv s)
---s_dn ep (Call pn) s = s_dn ep (ep pn) s
 
---s_mixed :: Stm -> State -> State
---s_mixed sm s = s_mxd envp sm s
+s_static :: Stm -> State -> State
+s_static sm s = s_srun sm s
 
---s_mxd e sm s = s_mx (EnvP_m(e)) sm s
---
---
-
-scopeProg = Block [("x",N 0)] [("p",Ass "x" (Mult (V "x") (N 2))),("q",Call "p")] (Block [("x",N 5)] [("p",Ass "x" (Add (V "x") (N 1)))] (Comp (Call "q") (Ass "y" (V "x"))))
-
-scopeString = "//scope test (p.53)\nbegin\nvar x:=0;\nproc p is x:=x*2;\nproc q is call p;\nbegin\nvar x:=5;\nproc p is x:=x+1;\n(call q;\ny:=x)\nend\nend"
-
-updGen :: Eq a => (a -> b) -> b -> a -> (a -> b)
-updGen en s p = (\x -> if p == x then s else en x)
-
-update_s :: State -> DecV -> State
-update_s s decV = foldl update_s' s decV
-  where
-      update_s' :: State -> (Var, Aexp) -> State
-      update_s' s (var, aexp) = \var' -> case () of
-               _ | var' == var -> a_val aexp s
-                 | otherwise   -> s var'
-
-upd_pm :: EnvP_m -> DecP -> EnvP_m
-upd_pm  envP decP = foldl upd_pm' envP decP
-  where
-      upd_pm' :: EnvP_m -> (Pname, Stm) -> EnvP_m
-      upd_pm' envP (pname, stm) = EnvP_m(\pname' -> case() of
-        _ | pname' == pname -> (stm, envP)
-          | otherwise       -> run envP pname')
-
---s_mixed :: Stm -> State -> State
---
-
---updateEnvps :: EnvPs -> Stm -> Pname -> EnvPs
---updateEnvps e1 s p y = if(p == y)
---                    then (s, e1)
---                    else e1 y
---
---extract :: Pname -> (Stm, EnvP_s) -> EnvP_s
---extract p (s, e) = e
-
-
---updateEnvp :: EnvP -> Stm -> Pname -> EnvP
---updateEnvp e s p y = if(p == y)
---                    then s
---                    else e y
-
---updateEnvp_s :: EnvP_s -> Stm -> Pname -> EnvP_s
---updateEnvp_s e s p y = updateEnvp e s p y
-
---upd_pd :: (DecP, EnvP) -> EnvP
---upd_pd (((p,s):ds), ep) = 
---  do ep' <- updateEnvp ep s
---     upd_pd (ds, ep')
---upd_pd (_, ep) = ep
-
---upd_pm :: (DecP, EnvP_s) -> EnvP_s
---upd_pm (((p,s):ds), ep) =
---  do ep' <- EnvP_s (updGen s ep)
---     upd_pm (ds, ep')
---upd_pm (_, ep) = ep
-
---updateEnvp_s :: EnvP_s -> Stm -> Pname -> EnvP_s
---updateEnvp_s e s p y = if(p == y)
---                    then s
---                    else e y
---
