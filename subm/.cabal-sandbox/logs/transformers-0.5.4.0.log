@@ -1,0 +1,38 @@
+Configuring transformers-0.5.4.0...
+Building transformers-0.5.4.0...
+Preprocessing library transformers-0.5.4.0...
+[ 1 of 30] Compiling Control.Monad.Trans.Class ( Control/Monad/Trans/Class.hs, dist/dist-sandbox-bb284ef5/build/Control/Monad/Trans/Class.o )
+[ 2 of 30] Compiling Control.Monad.Signatures ( Control/Monad/Signatures.hs, dist/dist-sandbox-bb284ef5/build/Control/Monad/Signatures.o )
+[ 3 of 30] Compiling Control.Monad.IO.Class ( legacy/pre711/Control/Monad/IO/Class.hs, dist/dist-sandbox-bb284ef5/build/Control/Monad/IO/Class.o )
+[ 4 of 30] Compiling Data.Functor.Identity ( legacy/pre709/Data/Functor/Identity.hs, dist/dist-sandbox-bb284ef5/build/Data/Functor/Identity.o )
+[ 5 of 30] Compiling Data.Functor.Classes ( legacy/pre711/Data/Functor/Classes.hs, dist/dist-sandbox-bb284ef5/build/Data/Functor/Classes.o )
+[ 6 of 30] Compiling Data.Functor.Compose ( legacy/pre711/Data/Functor/Compose.hs, dist/dist-sandbox-bb284ef5/build/Data/Functor/Compose.o )
+[ 7 of 30] Compiling Data.Functor.Product ( legacy/pre711/Data/Functor/Product.hs, dist/dist-sandbox-bb284ef5/build/Data/Functor/Product.o )
+[ 8 of 30] Compiling Data.Functor.Sum ( legacy/pre711/Data/Functor/Sum.hs, dist/dist-sandbox-bb284ef5/build/Data/Functor/Sum.o )
+[ 9 of 30] Compiling Control.Applicative.Backwards ( Control/Applicative/Backwards.hs, dist/dist-sandbox-bb284ef5/build/Control/Applicative/Backwards.o )
+[10 of 30] Compiling Data.Functor.Constant ( Data/Functor/Constant.hs, dist/dist-sandbox-bb284ef5/build/Data/Functor/Constant.o )
+[11 of 30] Compiling Control.Applicative.Lift ( Control/Applicative/Lift.hs, dist/dist-sandbox-bb284ef5/build/Control/Applicative/Lift.o )
+[12 of 30] Compiling Control.Monad.Trans.Error ( Control/Monad/Trans/Error.hs, dist/dist-sandbox-bb284ef5/build/Control/Monad/Trans/Error.o )
+[13 of 30] Compiling Control.Monad.Trans.Identity ( Control/Monad/Trans/Identity.hs, dist/dist-sandbox-bb284ef5/build/Control/Monad/Trans/Identity.o )
+[14 of 30] Compiling Control.Monad.Trans.List ( Control/Monad/Trans/List.hs, dist/dist-sandbox-bb284ef5/build/Control/Monad/Trans/List.o )
+[15 of 30] Compiling Data.Functor.Reverse ( Data/Functor/Reverse.hs, dist/dist-sandbox-bb284ef5/build/Data/Functor/Reverse.o )
+[16 of 30] Compiling Control.Monad.Trans.Reader ( Control/Monad/Trans/Reader.hs, dist/dist-sandbox-bb284ef5/build/Control/Monad/Trans/Reader.o )
+[17 of 30] Compiling Control.Monad.Trans.Cont ( Control/Monad/Trans/Cont.hs, dist/dist-sandbox-bb284ef5/build/Control/Monad/Trans/Cont.o )
+[18 of 30] Compiling Control.Monad.Trans.Except ( Control/Monad/Trans/Except.hs, dist/dist-sandbox-bb284ef5/build/Control/Monad/Trans/Except.o )
+[19 of 30] Compiling Control.Monad.Trans.Maybe ( Control/Monad/Trans/Maybe.hs, dist/dist-sandbox-bb284ef5/build/Control/Monad/Trans/Maybe.o )
+[20 of 30] Compiling Control.Monad.Trans.RWS.Lazy ( Control/Monad/Trans/RWS/Lazy.hs, dist/dist-sandbox-bb284ef5/build/Control/Monad/Trans/RWS/Lazy.o )
+[21 of 30] Compiling Control.Monad.Trans.RWS ( Control/Monad/Trans/RWS.hs, dist/dist-sandbox-bb284ef5/build/Control/Monad/Trans/RWS.o )
+[22 of 30] Compiling Control.Monad.Trans.RWS.Strict ( Control/Monad/Trans/RWS/Strict.hs, dist/dist-sandbox-bb284ef5/build/Control/Monad/Trans/RWS/Strict.o )
+[23 of 30] Compiling Control.Monad.Trans.Select ( Control/Monad/Trans/Select.hs, dist/dist-sandbox-bb284ef5/build/Control/Monad/Trans/Select.o )
+[24 of 30] Compiling Control.Monad.Trans.State.Lazy ( Control/Monad/Trans/State/Lazy.hs, dist/dist-sandbox-bb284ef5/build/Control/Monad/Trans/State/Lazy.o )
+[25 of 30] Compiling Control.Monad.Trans.State ( Control/Monad/Trans/State.hs, dist/dist-sandbox-bb284ef5/build/Control/Monad/Trans/State.o )
+[26 of 30] Compiling Control.Monad.Trans.State.Strict ( Control/Monad/Trans/State/Strict.hs, dist/dist-sandbox-bb284ef5/build/Control/Monad/Trans/State/Strict.o )
+[27 of 30] Compiling Control.Monad.Trans.Writer.Lazy ( Control/Monad/Trans/Writer/Lazy.hs, dist/dist-sandbox-bb284ef5/build/Control/Monad/Trans/Writer/Lazy.o )
+[28 of 30] Compiling Control.Monad.Trans.Writer ( Control/Monad/Trans/Writer.hs, dist/dist-sandbox-bb284ef5/build/Control/Monad/Trans/Writer.o )
+[29 of 30] Compiling Control.Monad.Trans.Accum ( Control/Monad/Trans/Accum.hs, dist/dist-sandbox-bb284ef5/build/Control/Monad/Trans/Accum.o )
+[30 of 30] Compiling Control.Monad.Trans.Writer.Strict ( Control/Monad/Trans/Writer/Strict.hs, dist/dist-sandbox-bb284ef5/build/Control/Monad/Trans/Writer/Strict.o )
+In-place registering transformers-0.5.4.0...
+Creating package registration file: /tmp/pkgConf-transformers-0.5.412224.0
+Installing library in
+/home/josh/Documents/LanguageEngineering/subm/.cabal-sandbox/lib/x86_64-linux-ghc-7.6.3/transformers-0.5.4.0
+Registering transformers-0.5.4.0...

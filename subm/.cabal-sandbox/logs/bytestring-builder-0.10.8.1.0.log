@@ -1,0 +1,22 @@
+Configuring bytestring-builder-0.10.8.1.0...
+Building bytestring-builder-0.10.8.1.0...
+Preprocessing library bytestring-builder-0.10.8.1.0...
+[ 1 of 13] Compiling Data.ByteString.Builder.Prim.Internal.Base16 ( src/Data/ByteString/Builder/Prim/Internal/Base16.hs, dist/dist-sandbox-bb284ef5/build/Data/ByteString/Builder/Prim/Internal/Base16.o )
+[ 2 of 13] Compiling Data.ByteString.Short.Internal ( src/Data/ByteString/Short/Internal.hs, dist/dist-sandbox-bb284ef5/build/Data/ByteString/Short/Internal.o )
+[ 3 of 13] Compiling Data.ByteString.Short ( src/Data/ByteString/Short.hs, dist/dist-sandbox-bb284ef5/build/Data/ByteString/Short.o )
+[ 4 of 13] Compiling Data.ByteString.Builder.Prim.Internal.UncheckedShifts ( src/Data/ByteString/Builder/Prim/Internal/UncheckedShifts.hs, dist/dist-sandbox-bb284ef5/build/Data/ByteString/Builder/Prim/Internal/UncheckedShifts.o )
+[ 5 of 13] Compiling Data.ByteString.Builder.Prim.Internal ( src/Data/ByteString/Builder/Prim/Internal.hs, dist/dist-sandbox-bb284ef5/build/Data/ByteString/Builder/Prim/Internal.o )
+[ 6 of 13] Compiling Data.ByteString.Builder.Prim.Internal.Floating ( src/Data/ByteString/Builder/Prim/Internal/Floating.hs, dist/dist-sandbox-bb284ef5/build/Data/ByteString/Builder/Prim/Internal/Floating.o )
+[ 7 of 13] Compiling Data.ByteString.Builder.Prim.Binary ( src/Data/ByteString/Builder/Prim/Binary.hs, dist/dist-sandbox-bb284ef5/build/Data/ByteString/Builder/Prim/Binary.o )
+[ 8 of 13] Compiling Data.ByteString.Builder.Prim.ASCII ( src/Data/ByteString/Builder/Prim/ASCII.hs, dist/dist-sandbox-bb284ef5/build/Data/ByteString/Builder/Prim/ASCII.o )
+[ 9 of 13] Compiling Data.ByteString.Builder.Internal ( src/Data/ByteString/Builder/Internal.hs, dist/dist-sandbox-bb284ef5/build/Data/ByteString/Builder/Internal.o )
+[10 of 13] Compiling Data.ByteString.Builder.Prim ( src/Data/ByteString/Builder/Prim.hs, dist/dist-sandbox-bb284ef5/build/Data/ByteString/Builder/Prim.o )
+[11 of 13] Compiling Data.ByteString.Builder.Extra ( src/Data/ByteString/Builder/Extra.hs, dist/dist-sandbox-bb284ef5/build/Data/ByteString/Builder/Extra.o )
+[12 of 13] Compiling Data.ByteString.Builder.ASCII ( src/Data/ByteString/Builder/ASCII.hs, dist/dist-sandbox-bb284ef5/build/Data/ByteString/Builder/ASCII.o )
+[13 of 13] Compiling Data.ByteString.Builder ( src/Data/ByteString/Builder.hs, dist/dist-sandbox-bb284ef5/build/Data/ByteString/Builder.o )
+In-place registering bytestring-builder-0.10.8.1.0...
+Creating package registration file:
+/tmp/pkgConf-bytestring-builder-0.10.8.112224.0
+Installing library in
+/home/josh/Documents/LanguageEngineering/subm/.cabal-sandbox/lib/x86_64-linux-ghc-7.6.3/bytestring-builder-0.10.8.1.0
+Registering bytestring-builder-0.10.8.1.0...

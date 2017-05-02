@@ -1,0 +1,32 @@
+Warning: megaparsec.cabal: Unknown fields: extra-doc-files (line 49)
+Fields allowed in this section:
+name, version, cabal-version, build-type, license, license-file,
+copyright, maintainer, build-depends, stability, homepage,
+package-url, bug-reports, synopsis, description, category, author,
+tested-with, data-files, data-dir, extra-source-files,
+extra-tmp-files
+Configuring megaparsec-5.2.0...
+Warning: 'license: BSD2' is not a recognised license. The known licenses are:
+GPL, GPL-2, GPL-3, LGPL, LGPL-2.1, LGPL-3, BSD3, MIT, Apache, Apache-2.0,
+PublicDomain, AllRightsReserved, OtherLicense
+Building megaparsec-5.2.0...
+Preprocessing library megaparsec-5.2.0...
+[ 1 of 14] Compiling Text.Megaparsec.Pos ( Text/Megaparsec/Pos.hs, dist/dist-sandbox-bb284ef5/build/Text/Megaparsec/Pos.o )
+[ 2 of 14] Compiling Text.Megaparsec.Error ( Text/Megaparsec/Error.hs, dist/dist-sandbox-bb284ef5/build/Text/Megaparsec/Error.o )
+[ 3 of 14] Compiling Text.Megaparsec.Prim ( Text/Megaparsec/Prim.hs, dist/dist-sandbox-bb284ef5/build/Text/Megaparsec/Prim.o )
+[ 4 of 14] Compiling Text.Megaparsec.ByteString ( Text/Megaparsec/ByteString.hs, dist/dist-sandbox-bb284ef5/build/Text/Megaparsec/ByteString.o )
+[ 5 of 14] Compiling Text.Megaparsec.ByteString.Lazy ( Text/Megaparsec/ByteString/Lazy.hs, dist/dist-sandbox-bb284ef5/build/Text/Megaparsec/ByteString/Lazy.o )
+[ 6 of 14] Compiling Text.Megaparsec.String ( Text/Megaparsec/String.hs, dist/dist-sandbox-bb284ef5/build/Text/Megaparsec/String.o )
+[ 7 of 14] Compiling Text.Megaparsec.Text ( Text/Megaparsec/Text.hs, dist/dist-sandbox-bb284ef5/build/Text/Megaparsec/Text.o )
+[ 8 of 14] Compiling Text.Megaparsec.Text.Lazy ( Text/Megaparsec/Text/Lazy.hs, dist/dist-sandbox-bb284ef5/build/Text/Megaparsec/Text/Lazy.o )
+[ 9 of 14] Compiling Text.Megaparsec.Combinator ( Text/Megaparsec/Combinator.hs, dist/dist-sandbox-bb284ef5/build/Text/Megaparsec/Combinator.o )
+[10 of 14] Compiling Text.Megaparsec.Expr ( Text/Megaparsec/Expr.hs, dist/dist-sandbox-bb284ef5/build/Text/Megaparsec/Expr.o )
+[11 of 14] Compiling Text.Megaparsec.Perm ( Text/Megaparsec/Perm.hs, dist/dist-sandbox-bb284ef5/build/Text/Megaparsec/Perm.o )
+[12 of 14] Compiling Text.Megaparsec.Char ( Text/Megaparsec/Char.hs, dist/dist-sandbox-bb284ef5/build/Text/Megaparsec/Char.o )
+[13 of 14] Compiling Text.Megaparsec.Lexer ( Text/Megaparsec/Lexer.hs, dist/dist-sandbox-bb284ef5/build/Text/Megaparsec/Lexer.o )
+[14 of 14] Compiling Text.Megaparsec  ( Text/Megaparsec.hs, dist/dist-sandbox-bb284ef5/build/Text/Megaparsec.o )
+In-place registering megaparsec-5.2.0...
+Creating package registration file: /tmp/pkgConf-megaparsec-5.212224.0
+Installing library in
+/home/josh/Documents/LanguageEngineering/subm/.cabal-sandbox/lib/x86_64-linux-ghc-7.6.3/megaparsec-5.2.0
+Registering megaparsec-5.2.0...
