@@ -1,4 +1,4 @@
-module WhileParser where
+module Cw2 where
 import Prelude hiding (Num)
 import qualified Prelude (Num)
 import Control.Applicative
@@ -7,7 +7,6 @@ import qualified Text.Megaparsec (parse)
 import Text.Megaparsec.String
 import Text.Megaparsec.Expr
 import Data.List (intercalate)
-import Debug.Trace
 
 type Num = Integer
 type Var = String
@@ -522,4 +521,3 @@ s_mixed sm s = s_mrun sm s
 
 s_static :: Stm -> State -> State
 s_static sm s = s_srun sm s
-
